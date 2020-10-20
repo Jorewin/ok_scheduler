@@ -1,22 +1,22 @@
-from scheduler.objects import Computer
+from scheduler.tools import Computer, calculate_time
 from typing import Iterator
 import copy
 
 
-class Processes:
-    """Class that simplifies operations on the processes list.
+class Tasks:
+    """Class that simplifies operations on the tasks list.
 
     :ivar current: current process indicator
     :type current: int
-    :ivar number: total number of processes
+    :ivar number: total number of tasks
     :type number: int
     :ivar storage: storage[process_indicator - 1] = last processor that was assigned to the process
     :ivar storage: list
     """
-    def __init__(self, n_processes):
+    def __init__(self, n_tasks):
         self.current = 1
-        self.number = n_processes
-        self.storage = [0 for _ in range(n_processes)]
+        self.number = n_tasks
+        self.storage = [0 for _ in range(n_tasks)]
 
     def get_current(self):
         return self.storage[self.current - 1]
@@ -45,7 +45,7 @@ class Processors:
         :ivar number: total number of processors
         :type number: int
         :ivar used: number of processors that have at least one process assigned to them
-        :ivar storage: storage[processor_indicator - 1] = list of processes that are currently assigned to the processor
+        :ivar storage: storage[processor_indicator - 1] = list of tasks that are currently assigned to the processor
         :ivar storage: list
         """
     def __init__(self, n_processors):
@@ -86,64 +86,50 @@ class Processors:
         return f"Current: {self.current} | Free: {self.free()} | Number: {self.number} | Storage: {self.storage}"
 
 
-def brute_generator(processes_number: int, processors_number: int) -> Iterator[list]:
+def brute_generator(tasks_number: int, processors_number: int) -> Iterator[list]:
     """Yields all of the possible combinations of process assignment.
 
-    :param processes_number:
+    :param tasks_number:
     :param processors_number:
     :return: list of processors with tasks assigned to them
     """
-    processes = Processes(processes_number)
+    tasks = Tasks(tasks_number)
     processors = Processors(processors_number)
 
-    while processes.current != 0:
-        if processes.current > processes.number:
+    while tasks.current != 0:
+        if tasks.current > tasks.number:
             yield processors.storage
-            processes.previous()
+            tasks.previous()
             continue
 
-        if processes.get_current() == 0:
-            if processes.free() > processors.free():
+        if tasks.get_current() == 0:
+            if tasks.free() > processors.free():
                 processors.reset()
             else:
                 processors.current = processors.used
                 processors.next()
-            processes.set_current(processors.current)
-            processors.add_to_current(processes.current)
-            processes.next()
+            tasks.set_current(processors.current)
+            processors.add_to_current(tasks.current)
+            tasks.next()
             continue
 
-        processors.current = processes.get_current()
+        processors.current = tasks.get_current()
         if processors.len_current() == 1 or processors.current >= processors.number:
-            processes.set_current(0)
+            tasks.set_current(0)
             processors.pop_from_current()
-            processes.previous()
+            tasks.previous()
         else:
             processors.pop_from_current()
             processors.next()
-            processes.set_current(processors.current)
-            processors.add_to_current(processes.current)
-            processes.next()
+            tasks.set_current(processors.current)
+            processors.add_to_current(tasks.current)
+            tasks.next()
 
 
-def calculate_time(processes_durations: list, processors: list) -> int:
-    """Calculates the time, it takes for the processors to do their tasks synchronously.
-
-    :param processes_durations: processes_durations[process_indicator - 1] = time it takes for the task to be completed
-    :param processors: combination of process assignments
-    :return: calculated time
-    """
-    result_time = 0
-    for processor in processors:
-        current_time = sum(map(lambda x: processes_durations[x - 1], processor))
-        result_time = max(current_time, result_time)
-    return result_time
-
-
-def solve(processes_durations: list, processors_number: int) -> Computer:
+def solve(tasks_durations: list, processors_number: int) -> Computer:
     """Solves the P||Cmax problem by using an iterative version of a brute force algorithm.
 
-    :param processes_durations: processes_durations[process_indicator - 1] = time it takes for the task to be completed
+    :param tasks_durations: tasks_durations[process_indicator - 1] = time it takes for the task to be completed
     :param processors_number: number of available processors
     :return: py:class:`Computer` object
     """
@@ -151,8 +137,8 @@ def solve(processes_durations: list, processors_number: int) -> Computer:
         return Computer(0, [])
     result_time = 0
     result_processors = []
-    for processors in brute_generator(len(processes_durations), processors_number):
-        current_time = calculate_time(processes_durations, processors)
+    for processors in brute_generator(len(tasks_durations), processors_number):
+        current_time = calculate_time(tasks_durations, processors)
         if current_time < result_time or result_time == 0:
             result_time, result_processors = current_time, copy.deepcopy(processors)
     return Computer(result_time, result_processors)
