@@ -24,14 +24,14 @@ def generate_partitions(whole_list: list, partitions_number: int) -> Iterator[li
                 yield partition[:n] + [partition[n] + [element]] + partition[n + 1:]
 
 
-def solve(processes_durations: list, processors_number: int) -> Computer:
+def solve(tasks_durations: list, processors_number: int) -> Computer:
     """Solves the P||Cmax problem by using a recursive version of a brute-force algorithm.
 
-    :param processes_durations: list of positive integers that represent durations of consecutive processes
+    :param tasks_durations: list of positive integers that represent durations of consecutive tasks
     :param processors_number: number of available processors
     :return: py:class:`Computer` object
     """
-    partitions = generate_partitions(processes_durations, processors_number)
+    partitions = generate_partitions(tasks_durations, processors_number)
 
     obtain_partition_result_time = lambda p: max(map(sum, p))
     partitions_with_result_times = map(lambda p: (p, obtain_partition_result_time(p)), partitions)
@@ -41,4 +41,3 @@ def solve(processes_durations: list, processors_number: int) -> Computer:
 
 
 __all__ = ["solve"]
-

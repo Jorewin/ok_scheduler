@@ -1,5 +1,5 @@
 import unittest
-from scheduler.algorithms import brute_force_iterative, brute_force_recursive
+from scheduler import brute_force_iterative, brute_force_recursive
 
 
 class BruteForceIterative(unittest.TestCase):
@@ -26,4 +26,3 @@ class BruteForceRecursive(unittest.TestCase):
 
 if __name__ == '__main__':
 	unittest.main()
-
