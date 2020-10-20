@@ -39,3 +39,6 @@ def solve(processes_durations: list, processors_number: int) -> Computer:
 
     return Computer(result_time, result_processors)
 
+
+__all__ = ["solve"]
+
