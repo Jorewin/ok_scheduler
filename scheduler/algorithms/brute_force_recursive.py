@@ -4,7 +4,7 @@ from scheduler.objects import Computer
 
 def generate_partitions(whole_list: list, partitions_number: int) -> Iterator[list]:
     """Generator function which yields all possible partitions of the list
-	to a given number of sublists
+    to a given number of sublists
 
     :param whole_list: the list for which partitions are being generated
     :param partitions_number: number of partitions in which whole_list is divided
@@ -32,11 +32,10 @@ def solve(processes_durations: list, processors_number: int) -> Computer:
     :return: py:class:`Computer` object
     """
     partitions = generate_partitions(processes_durations, processors_number)
-    obtain_partition_result_time = lambda x: max(map(sum, x))
 
-    partitions_with_result_times = zip(partitions, map(obtain_partition_result_time, partitions))
+    obtain_partition_result_time = lambda p: max(map(sum, p))
+    partitions_with_result_times = map(lambda p: (p, obtain_partition_result_time(p)), partitions)
     result_processors, result_time = min(partitions_with_result_times, key=lambda x: x[1])
 
     return Computer(result_time, result_processors)
-
 
