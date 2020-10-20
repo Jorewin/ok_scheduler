@@ -1,6 +1,6 @@
 from .algorithms import brute_force_iterative
 from .algorithms import brute_force_recursive
-from .objects import Computer
+from .tools import Computer
 
 
 __version__ = "0.1.0"

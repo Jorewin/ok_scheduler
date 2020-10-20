@@ -1,5 +1,6 @@
 from typing import Iterator
-from scheduler.objects import Computer
+from scheduler.tools import Computer, calculate_time
+import copy
 
 
 def generate_partitions(whole_list: list, partitions_number: int) -> Iterator[list]:
@@ -24,19 +25,38 @@ def generate_partitions(whole_list: list, partitions_number: int) -> Iterator[li
                 yield partition[:n] + [partition[n] + [element]] + partition[n + 1:]
 
 
-def solve(tasks_durations: list, processors_number: int) -> Computer:
-    """Solves the P||Cmax problem by using a recursive version of a brute-force algorithm.
+# This version returns tasks durations instead of their ids
+# def solve(tasks_durations: list, processors_number: int) -> Computer:
+#     """Solves the P||Cmax problem by using a recursive version of a brute-force algorithm.
+#
+#     :param tasks_durations: list of positive integers that represent durations of consecutive tasks
+#     :param processors_number: number of available processors
+#     :return: py:class:`Computer` object
+#     """
+#     partitions = generate_partitions(tasks_durations, processors_number)
+#
+#     obtain_partition_result_time = lambda p: max(map(sum, p))
+#     partitions_with_result_times = map(lambda p: (p, obtain_partition_result_time(p)), partitions)
+#     result_processors, result_time = min(partitions_with_result_times, key=lambda x: x[1])
+#
+#     return Computer(result_time, result_processors)
 
-    :param tasks_durations: list of positive integers that represent durations of consecutive tasks
+
+def solve(tasks_durations: list, processors_number: int) -> Computer:
+    """Solves the P||Cmax problem by using an iterative version of a brute force algorithm.
+
+    :param tasks_durations: tasks_durations[process_indicator - 1] = time it takes for the task to be completed
     :param processors_number: number of available processors
     :return: py:class:`Computer` object
     """
-    partitions = generate_partitions(tasks_durations, processors_number)
-
-    obtain_partition_result_time = lambda p: max(map(sum, p))
-    partitions_with_result_times = map(lambda p: (p, obtain_partition_result_time(p)), partitions)
-    result_processors, result_time = min(partitions_with_result_times, key=lambda x: x[1])
-
+    if processors_number <= 0:
+        return Computer(0, [])
+    result_time = 0
+    result_processors = []
+    for processors in generate_partitions([i + 1 for i in range(len(tasks_durations))], processors_number):
+        current_time = calculate_time(tasks_durations, processors)
+        if current_time < result_time or result_time == 0:
+            result_time, result_processors = current_time, copy.deepcopy(processors)
     return Computer(result_time, result_processors)
 
 
