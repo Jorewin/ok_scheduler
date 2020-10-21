@@ -12,14 +12,14 @@ def solve(tasks_durations: list, processors_number: int) -> Computer:
     :return: py:class:`Computer` object
     """
     processors = [[0, deque([])] for _ in range(processors_number)]
-
     for task_index, task_duration in enumerate(tasks_durations):
         free_processor = min(enumerate(processors), key=lambda x: x[1][0])[0]
         processors[free_processor][0] += task_duration
         processors[free_processor][1].append(task_index + 1)
 
-    result_time, result_processors = max(processors, key=lambda x: x[0])
-    return Computer(result_time, list(result_processors))
+    result_time = max(processors, key=lambda x: x[0])[0]
+    result_processors = list(map(lambda x: list(x[1]), processors))
+    return Computer(result_time, result_processors)
 
 
 __all__ = ["solve"]
