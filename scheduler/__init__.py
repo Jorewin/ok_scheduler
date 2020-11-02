@@ -2,6 +2,7 @@ from .algorithms import brute_force_iterative
 from .algorithms import brute_force_recursive
 from .algorithms import greedy
 from .tools import Computer
+from .generator import generate
 
 
 __version__ = "0.1.0"
