@@ -1,2 +1,2 @@
 # ok_scheduler
-Implementation of various "multiprocessor scheduling" problem solving algorythms.
+Implementation of various "multiprocessor scheduling" problem solving algorithms.
