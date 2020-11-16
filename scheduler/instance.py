@@ -1,3 +1,9 @@
+class Computer:
+    def __init__(self, time, processors):
+        self.time = time
+        self.processors = processors
+
+
 class ProblemInstance:
     def __init__(self, tasks_durations, processors_number):
         self.tasks_durations = tasks_durations
