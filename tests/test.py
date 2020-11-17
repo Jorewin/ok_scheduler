@@ -5,14 +5,13 @@ from scheduler import (
     brute_force_recursive,
     greedy,
     generate,
-    ProblemInstance,
-    ProblemInstanceSolution
+    Instance,
 )
 
 
 class TestBruteForceIterative(unittest.TestCase):
     def test_example(self):
-        instance = ProblemInstance([1, 5, 2, 5, 6, 8, 1, 2], 3)
+        instance = Instance(3, [1, 5, 2, 5, 6, 8, 1, 2])
         solution = brute_force_iterative.solve(instance)
 
         self.assertEqual(solution.total_time, 10)
@@ -20,7 +19,7 @@ class TestBruteForceIterative(unittest.TestCase):
 
 class TestBruteForceRecursive(unittest.TestCase):
     def test_example(self):
-        instance = ProblemInstance([1, 5, 2, 5, 6, 8, 1, 2], 3)
+        instance = Instance(3, [1, 5, 2, 5, 6, 8, 1, 2])
         solution = brute_force_recursive.solve(instance)
 
         self.assertEqual(solution.total_time, 10)
@@ -28,7 +27,7 @@ class TestBruteForceRecursive(unittest.TestCase):
 
 class TestGreedy(unittest.TestCase):
     def test_example(self):
-        instance = ProblemInstance([1, 5, 2, 5, 6, 8, 1, 2], 3)
+        instance = Instance(3, [1, 5, 2, 5, 6, 8, 1, 2])
         solution = greedy.solve(instance)
 
         self.assertEqual(solution.total_time, 13)

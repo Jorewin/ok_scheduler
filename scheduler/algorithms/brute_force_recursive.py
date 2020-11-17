@@ -1,5 +1,5 @@
+from scheduler.problem import Instance, InstanceSolution
 from typing import Iterator
-from scheduler.instance import ProblemInstance, ProblemInstanceSolution
 
 
 def generate_partitions(whole_list: list, partitions_number: int) -> Iterator[list]:
@@ -24,17 +24,16 @@ def generate_partitions(whole_list: list, partitions_number: int) -> Iterator[li
                 yield partition[:n] + [partition[n] + [element]] + partition[n + 1:]
 
 
-def solve(instance: ProblemInstance) -> ProblemInstanceSolution:
+def solve(instance: Instance) -> InstanceSolution:
     """Solves the P||Cmax problem by using an iterative version of a brute force algorithm.
 
-    :param tasks_durations: tasks_durations[process_indicator - 1] = time it takes for the task to be completed
-    :param processors_number: number of available processors
-    :return: py:class:`Computer` object
+    :param instance: valid problem instance
+    :return: generated solution of a given problem instance
     """
     
     tasks_indexes = list(range(len(instance.tasks_durations)))
     all_possible_partitions = generate_partitions(tasks_indexes, instance.processors_number)
-    solutions = map(lambda p: ProblemInstanceSolution(instance, p), all_possible_partitions)
+    solutions = map(lambda p: InstanceSolution(instance, p), all_possible_partitions)
     best_solution = min(solutions, key=lambda s: s.total_time)
 
     return best_solution

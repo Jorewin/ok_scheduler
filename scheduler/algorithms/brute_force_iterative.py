@@ -1,89 +1,85 @@
-from scheduler.tools import Computer, calculate_time
+from scheduler.problem import Instance, InstanceSolution
 from typing import Iterator
-import copy
 
 
-class Tasks:
+class Lists:
+    def __init__(self, number):
+        self.current = 0
+        self.number = number
+        self.used = -1
+        self.storage = []
+
+    def reset(self):
+        self.current = 0
+
+    def next(self):
+        if self.current < self.number - 1:
+            self.current += 1
+            return True
+        return False
+
+    def previous(self):
+        if self.current > 0:
+            self.current -= 1
+            return True
+        return False
+
+    def get_current(self):
+        return self.storage[self.current]
+
+    def set_current(self, value):
+        self.storage[self.current] = value
+
+
+class Tasks(Lists):
     """Class that simplifies operations on the tasks list.
 
-    :ivar current: current process indicator
+    :ivar current: current task index
     :type current: int
     :ivar number: total number of tasks
     :type number: int
-    :ivar storage: storage[process_indicator - 1] = last processor that was assigned to the process
+    :ivar storage: storage[task_index] = last processor that was assigned to the process
     :ivar storage: list
     """
     def __init__(self, n_tasks):
-        self.current = 1
-        self.number = n_tasks
-        self.storage = [0 for _ in range(n_tasks)]
-
-    def get_current(self):
-        return self.storage[self.current - 1]
-
-    def set_current(self, value):
-        self.storage[self.current - 1] = value
+        super().__init__(n_tasks)
+        self.storage = [-1 for _ in range(n_tasks)]
 
     def free(self):
         return self.number - self.current + 1
 
-    def next(self):
-        self.current += 1
 
-    def previous(self):
-        self.current -= 1
-
-    def __repr__(self):
-        return f"Current: {self.current} | Free: {self.free()} | Number: {self.number} | Storage: {self.storage}"
-
-
-class Processors:
+class Processors(Lists):
     """Class that simplifies operations on the processors list.
 
-        :ivar current: current processor indicator
+        :ivar current: current processor index
         :type current: int
         :ivar number: total number of processors
         :type number: int
-        :ivar used: number of processors that have at least one process assigned to them
-        :ivar storage: storage[processor_indicator - 1] = list of tasks that are currently assigned to the processor
+        :ivar used: number of processors that have at least one task assigned to them
+        :ivar storage: storage[processor_index] = list of tasks that are currently assigned to the processor
         :ivar storage: list
         """
     def __init__(self, n_processors):
-        self.current = 1
-        self.number = n_processors
-        self.used = 0
+        super().__init__(n_processors)
         self.storage = [[] for _ in range(n_processors)]
 
     def free(self):
         return self.number - self.used
 
-    def reset(self):
-        self.current = 1
-
-    def next(self):
-        if self.current < self.number:
-            self.current += 1
-
-    def previous(self):
-        if self.current > 1:
-            self.current -= 1
-
     def add_to_current(self, value):
-        if len(self.storage[self.current - 1]) == 0 and self.used < self.number:
+        if len(self.storage[self.current]) == 0 and self.used < self.number - 1:
             self.used += 1
-        self.storage[self.current - 1].append(value)
+        self.storage[self.current].append(value)
 
     def pop_from_current(self):
-        result = self.storage[self.current - 1].pop()
-        if len(self.storage[self.current - 1]) == 0 and self.used > 1:
+        result = self.storage[self.current].pop()
+        if len(self.storage[self.current]) == 0 and self.used > 0:
             self.used = self.current - 1
         return result
 
     def len_current(self):
-        return len(self.storage[self.current - 1])
-
-    def __repr__(self):
-        return f"Current: {self.current} | Free: {self.free()} | Number: {self.number} | Storage: {self.storage}"
+        return len(self.storage[self.current])
 
 
 def brute_generator(tasks_number: int, processors_number: int) -> Iterator[list]:
@@ -95,14 +91,16 @@ def brute_generator(tasks_number: int, processors_number: int) -> Iterator[list]
     """
     tasks = Tasks(tasks_number)
     processors = Processors(processors_number)
+    lower_bound = True
+    upper_bound = True
 
-    while tasks.current != 0:
-        if tasks.current > tasks.number:
-            yield processors.storage
-            tasks.previous()
+    while lower_bound:
+        if not upper_bound:
+            yield [list(processor) for processor in processors.storage]
+            upper_bound = True
             continue
 
-        if tasks.get_current() == 0:
+        if tasks.get_current() == -1:
             if tasks.free() > processors.free():
                 processors.reset()
             else:
@@ -110,38 +108,33 @@ def brute_generator(tasks_number: int, processors_number: int) -> Iterator[list]
                 processors.next()
             tasks.set_current(processors.current)
             processors.add_to_current(tasks.current)
-            tasks.next()
+            upper_bound = tasks.next()
             continue
 
         processors.current = tasks.get_current()
-        if processors.len_current() == 1 or processors.current >= processors.number:
-            tasks.set_current(0)
+        if processors.len_current() == 1 or processors.current == processors.number - 1:
+            tasks.set_current(-1)
             processors.pop_from_current()
-            tasks.previous()
+            lower_bound = tasks.previous()
         else:
             processors.pop_from_current()
             processors.next()
             tasks.set_current(processors.current)
             processors.add_to_current(tasks.current)
-            tasks.next()
+            upper_bound = tasks.next()
 
 
-def solve(tasks_durations: list, processors_number: int) -> Computer:
+def solve(instance: Instance) -> InstanceSolution:
     """Solves the P||Cmax problem by using an iterative version of a brute force algorithm.
 
-    :param tasks_durations: tasks_durations[process_indicator - 1] = time it takes for the task to be completed
-    :param processors_number: number of available processors
-    :return: py:class:`Computer` object
+    :param instance: valid problem instance
+    :return: generated solution of a given problem instance
     """
-    if processors_number <= 0:
-        return Computer(0, [])
-    result_time = 0
-    result_processors = []
-    for processors in brute_generator(len(tasks_durations), processors_number):
-        current_time = calculate_time(tasks_durations, processors)
-        if current_time < result_time or result_time == 0:
-            result_time, result_processors = current_time, copy.deepcopy(processors)
-    return Computer(result_time, result_processors)
+    all_possible_partitions = brute_generator(len(instance.tasks_durations), instance.processors_number)
+    solutions = map(lambda p: InstanceSolution(instance, p), all_possible_partitions)
+    best_solution = min(solutions, key=lambda s: s.total_time)
+
+    return best_solution
 
 
 __all__ = ["solve"]

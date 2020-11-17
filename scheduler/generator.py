@@ -1,25 +1,18 @@
+from scheduler.problem import Instance
+from scheduler.exceptions import IncorrectGeneratorDatasetError
 import math
 import random
-from typing import Iterator
-from scheduler.instance import ProblemInstance
-
-
-class IncorrectGeneratorDatasetError(Exception):
-    """Exception that is called if input parameters to generator
-    are incorrect
-    """
 
 
 def generate_list_which_sums_to_value(sum_value: int, list_length: int, elements_range: (int, int)) -> list:
     """Function generates a list of given length
-       and fills it with randomly generated elements from a range
-       whose sum is equal to a given value.
-
-       It raises an exception if it's not possible to generate such list
+    and fills it with randomly generated elements from a range
+    whose sum is equal to a given value.
 
     :param sum_value:
     :param list_length:
     :param elements_range: tuple in format (min, max) which indicate a closed range
+    :raise IncorrectGeneratorDatasetError: if it's not possible to generate such list
     :return: generated list
     """
 
@@ -41,7 +34,7 @@ def generate_list_which_sums_to_value(sum_value: int, list_length: int, elements
     return result_list
 
 
-def generate(cmax: int, tasks_number: int, processors_number: int, task_duration_range: (int, int)) -> ProblemInstance:
+def generate(cmax: int, tasks_number: int, processors_number: int, task_duration_range: (int, int)) -> Instance:
     """Function generate a dataset for P||Cmax problem
 
     :param cmax: Total time of execution of all tasks
@@ -73,5 +66,4 @@ def generate(cmax: int, tasks_number: int, processors_number: int, task_duration
     for tasks_number in tasks_per_procesor:
         result_list += generate_list_which_sums_to_value(tasks_rectangle_width, tasks_number, task_duration_range)
 
-    return ProblemInstance(result_list, processors_number)
-
+    return Instance(processors_number, result_list)

@@ -1,15 +1,12 @@
-from typing import Iterator
+from scheduler.problem import Instance, InstanceSolution
 from collections import deque
-from scheduler.instance import ProblemInstance, ProblemInstanceSolution
-import copy
 
 
-def solve(instance: ProblemInstance) -> ProblemInstanceSolution:
+def solve(instance: Instance) -> InstanceSolution:
     """Solves the P||Cmax problem by using a greedy algorithm.
 
-    :param tasks_durations: tasks_durations[process_indicator - 1] = time it takes for the task to be completed
-    :param processors_number: number of available processors
-    :return: py:class:`Computer` object
+    :param instance: valid problem instance
+    :return: generated solution of a given problem instance
     """
     processors = [[0, deque([])] for _ in range(instance.processors_number)]
 
@@ -18,10 +15,10 @@ def solve(instance: ProblemInstance) -> ProblemInstanceSolution:
         processors[free_processor][0] += task_duration
         processors[free_processor][1].append(task_index)
 
-    result_time = max(processors, key=lambda x: x[0])[0]
     result_processors = list(map(lambda x: list(x[1]), processors))
 
-    return ProblemInstanceSolution(instance, result_processors, result_time)
+    return InstanceSolution(instance, result_processors)
+
 
 __all__ = ["solve"]
 
