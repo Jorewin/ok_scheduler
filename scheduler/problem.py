@@ -68,19 +68,21 @@ def load_txt(filename: str) -> Instance:
         try:
             processors_number = int(source.readline())
             tasks_number = int(source.readline())
-            tasks_durations = list(map(int, source.readlines()))
+            tasks_durations = list(map(int, source.read().strip().split('\n')))
         except ValueError:
             raise FileContentError(
                 f"file must contain <processors_number> and <tasks_number>, every value must be an \\n separated int"
             )
+
         if processors_number <= 0:
             raise FileContentError(f"number of processors must be > 0, not ({processors_number})")
         if tasks_number < 0:
             raise FileContentError(f"number of tasks must be >= 0, not ({tasks_number})")
-        if tasks_durations != tasks_number:
+        if len(tasks_durations) != tasks_number:
             raise FileContentError(
                 f"declared number of tasks ({tasks_number}) is not equal to the length of tasks durations list"
             )
+
     return Instance(processors_number, tasks_durations)
 
 
@@ -91,7 +93,9 @@ def save_txt(filename: str, instance: Instance):
     :param instance: object to be saved to a text file
     """
     with open(filename, 'w') as target:
-        target.write(str(instance.processors_number))
-        target.write(str(len(instance.tasks_durations)))
+        print(instance.processors_number, file=target)
+        print(len(instance.tasks_durations), file=target)
+
         for i in range(len(instance.tasks_durations)):
-            target.write(str(instance.tasks_durations[i]))
+            print(instance.tasks_durations[i], file=target)
+
