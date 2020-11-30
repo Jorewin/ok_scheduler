@@ -1,3 +1,5 @@
+import matplotlib.pyplot as pyplot
+import numpy
 from .exceptions import FileContentError
 
 
@@ -57,6 +59,24 @@ class InstanceSolution:
             self.processors[processor_index]
         ))
 
+    def plot(self):
+        """Creates a graphical visualization of the solution."""
+        y = numpy.arange(self.instance.processors_number)
+        length = max([len(processor) for processor in self.processors])
+        x = numpy.zeros((length, self.instance.processors_number))
+        for i, processor in enumerate(self):
+            for j in range(len(processor)):
+                x[j][self.instance.processors_number - 1 - i] = processor[j]
+        sigma = numpy.zeros(self.instance.processors_number)
+        for i in range(length):
+            pyplot.barh(y, x[i], left=sigma)
+            sigma += x[i]
+        labels = [f"processor N°{i}" for i in range(self.instance.processors_number, 0, -1)]
+        pyplot.yticks(y, labels)
+        pyplot.title("instance solution visualization")
+        pyplot.xlabel("execution time")
+        pyplot.show()
+
 
 def load_txt(filename: str) -> Instance:
     """Creates a py:class:`Instance` object from a valid txt file.
@@ -98,4 +118,3 @@ def save_txt(filename: str, instance: Instance):
 
         for i in range(len(instance.tasks_durations)):
             print(instance.tasks_durations[i], file=target)
-
