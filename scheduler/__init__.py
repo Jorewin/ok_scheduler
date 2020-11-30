@@ -4,6 +4,7 @@ from .algorithms import greedy
 from .algorithms import genetic
 from .problem import Instance, InstanceSolution
 from .generator import generate
+from .dev_generator import generate as dev_generate
 
 
 __version__ = "0.2.0"
