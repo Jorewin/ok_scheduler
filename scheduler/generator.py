@@ -67,3 +67,4 @@ def generate(cmax: int, tasks_number: int, processors_number: int, task_duration
         result_list += generate_list_which_sums_to_value(tasks_rectangle_width, tasks_number, task_duration_range)
 
     return Instance(processors_number, result_list)
+
