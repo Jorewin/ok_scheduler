@@ -1,6 +1,7 @@
 from .algorithms import brute_force_iterative
 from .algorithms import brute_force_recursive
 from .algorithms import greedy
+from .algorithms import basic_heuristic
 from .algorithms import genetic
 from .problem import Instance, InstanceSolution
 from .generator import generate

@@ -4,35 +4,80 @@ from scheduler import greedy
 from scheduler.problem import Instance, InstanceSolution
 from collections import deque
 
-generations_number = 100
-generation_size = 500
-best_specimens_number = 1
-swapped_pairs = 5
+GENERATIONS = 128
 
-def swap_two_random_elements_between_lists(list_1: list, list_2: list):
-    index_1 = random.randrange(len(list_1))
-    index_2 = random.randrange(len(list_2))
-   
-    value = list_1[index_1]
-    list_1[index_1] = list_2[index_2]
-    list_2[index_2] = value
+POPULATION_UNIT = 16
+POPULATION_SIZE = 64
 
-def mutate(solution: InstanceSolution) -> InstanceSolution:
-    # It only swaps two tasks between processors at the moment
+BEST_SPECIMENS = 2 * POPULATION_UNIT
+SPECIMENS_IN_POPULATION = POPULATION_SIZE * BEST_SPECIMENS
 
-    processors = copy.deepcopy(solution.processors)
-    processor_1 = random.choice(processors)
-    processor_2 = random.choice(processors)
-    for _ in range(swapped_pairs):
-        swap_two_random_elements_between_lists(processor_1, processor_2)
 
-    return InstanceSolution(solution.instance, processors)
+class GeneticSolution:
+    def __init__(self, instance, tasks_mapping):
+        self.instance = instance
+        self.tasks_mapping = tasks_mapping
 
-def score(solution: InstanceSolution) -> int:
-    return solution.total_time
+        self.processors_times = [0] * self.instance.processors_number
+        for task_index, processor_index in enumerate(tasks_mapping):
+            self.processors_times[processor_index] += instance.tasks_durations[task_index]
 
-def cross(solution: list):
-    return solution[0]
+        self.max_time = max(self.processors_times)
+
+    @staticmethod
+    def from_instance_solution(solution):
+        tasks_mapping = [0] * len(solution.instance.tasks_durations)
+        for processor_index, tasks in enumerate(solution.processors):
+            for task_index in tasks:
+                tasks_mapping[task_index] = processor_index
+
+        return GeneticSolution(solution.instance, tasks_mapping)
+
+    def to_instance_solution(self):
+        processors = [[] for _ in range(self.instance.processors_number)]
+        for task_index, processor_index in enumerate(self.tasks_mapping):
+            processors[processor_index].append(task_index)
+
+        return InstanceSolution(self.instance, processors)
+
+    def score(self):
+        return self.max_time
+
+    def cross(self, other):
+        result = [0] * len(self.tasks_mapping)
+        result[::2] = self.tasks_mapping[::2]
+        result[1::2] = other.tasks_mapping[1::2]
+
+        return GeneticSolution(self.instance, result)
+
+    def mutate(self):
+        task_index = random.randrange(len(self.instance.tasks_durations))
+        processor_index = random.randrange(self.instance.processors_number)
+
+        task_duration = self.instance.tasks_durations[task_index]
+
+        previous_processor_index = self.tasks_mapping[task_index]
+        self.tasks_mapping[task_index] = processor_index
+
+        self.processors_times[previous_processor_index] -= task_duration
+        self.processors_times[processor_index] += task_duration
+        self.max_time = max(self.processors_times)
+
+    @staticmethod
+    def random(instance):
+        tasks_number = len(instance.tasks_durations)
+        tasks_mapping = [random.randrange(instance.processors_number) for _ in range(tasks_number)]
+        return GeneticSolution(instance, tasks_mapping)
+
+
+def cross_list_of_specimens(specimens):
+    result = []
+
+    for index in range(1, len(specimens), 2):
+        result.append(specimens[index - 1].cross(specimens[index]))
+
+    return result
+
 
 def solve(instance: Instance) -> InstanceSolution:
     """Solves the P||Cmax problem by using a genetic algorithm.
@@ -40,13 +85,19 @@ def solve(instance: Instance) -> InstanceSolution:
     :param instance: valid problem instance
     :return: generated solution of a given problem instance
     """
-    best_solution = greedy.solve(instance)
-    for _ in range(generations_number):
-        generation = [mutate(best_solution) for _ in range(generation_size)]
-        best_specimens = sorted(generation, key=score)[:best_specimens_number]
-        best_solution = cross(best_specimens)
+    population = [GeneticSolution.random(instance) for _ in range(POPULATION_SIZE)]
+    for _ in range(GENERATIONS):
+        best_specimens = sorted(population, key=lambda x: x.score())[:BEST_SPECIMENS]
+        crossed = cross_list_of_specimens(best_specimens)
+        for specimen in crossed:
+            if random.random() < 0.112 / 0.997:
+                specimen.mutate()
 
-    return best_solution
+        population = sum([copy.deepcopy(crossed) for _ in range(POPULATION_SIZE)], [])
+        random.shuffle(population)
+
+    best_solution = min(population, key=lambda x: x.score())
+    return best_solution.to_instance_solution()
 
 
 __all__ = ["solve"]
