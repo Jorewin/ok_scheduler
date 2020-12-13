@@ -70,15 +70,6 @@ class GeneticSolution:
         return GeneticSolution(instance, tasks_mapping)
 
 
-def cross_list_of_specimens(specimens):
-    result = []
-
-    for index in range(1, len(specimens), 2):
-        result.append(specimens[index - 1].cross(specimens[index]))
-
-    return result
-
-
 def solve(instance: Instance) -> InstanceSolution:
     """Solves the P||Cmax problem by using a genetic algorithm.
 
@@ -88,12 +79,16 @@ def solve(instance: Instance) -> InstanceSolution:
     population = [GeneticSolution.random(instance) for _ in range(POPULATION_SIZE)]
     for _ in range(GENERATIONS):
         best_specimens = sorted(population, key=lambda x: x.score())[:BEST_SPECIMENS]
-        crossed = cross_list_of_specimens(best_specimens)
-        for specimen in crossed:
+        best_specimen = best_specimens[0]
+        for index, specimen in enumerate(best_specimens[1:], 1):
+            best_specimens[index] = best_specimens[index].cross(best_specimen)
+
+
+        for specimen in best_specimens:
             if random.random() < 0.112 / 0.997:
                 specimen.mutate()
 
-        population = sum([copy.deepcopy(crossed) for _ in range(POPULATION_SIZE)], [])
+        population = sum([copy.deepcopy(best_specimens) for _ in range(POPULATION_SIZE)], [])
         random.shuffle(population)
 
     best_solution = min(population, key=lambda x: x.score())
