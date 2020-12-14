@@ -1,3 +1,4 @@
+from __future__ import annotations
 import matplotlib.pyplot as pyplot
 import numpy
 from .exceptions import FileContentError
@@ -21,6 +22,48 @@ class Instance:
             raise ValueError(f"number of processors must be > 0, not ({processors_number})")
         self.processors_number = processors_number
         self.tasks_durations = tasks_durations
+
+    @staticmethod
+    def load_txt(filename: str) -> Instance:
+        """Creates a py:class:`Instance` object from a valid txt file.
+
+        :param filename: name of the text file
+        :return: created object
+        """
+        with open(filename, 'r') as source:
+            try:
+                processors_number = int(source.readline())
+                tasks_number = int(source.readline())
+                tasks_durations = list(map(int, source.read().strip().split('\n')))
+            except ValueError:
+                raise FileContentError(
+                    f"file must contain <processors_number> and <tasks_number>, every value must be an \\n separated int"
+                )
+
+            if processors_number <= 0:
+                raise FileContentError(f"number of processors must be > 0, not ({processors_number})")
+            if tasks_number < 0:
+                raise FileContentError(f"number of tasks must be >= 0, not ({tasks_number})")
+            if len(tasks_durations) != tasks_number:
+                raise FileContentError(
+                    f"declared number of tasks ({tasks_number}) is not equal to the length of tasks durations list"
+                )
+
+        return Instance(processors_number, tasks_durations)
+
+    @staticmethod
+    def save_txt(filename: str, instance: Instance):
+        """Saves a py:class:`ProblemInstance` object in a txt file.
+
+        :param filename: name of the text file
+        :param instance: object to be saved to a text file
+        """
+        with open(filename, 'w') as target:
+            print(instance.processors_number, file=target)
+            print(len(instance.tasks_durations), file=target)
+
+            for i in range(len(instance.tasks_durations)):
+                print(instance.tasks_durations[i], file=target)
 
 
 class InstanceSolution:
@@ -76,45 +119,3 @@ class InstanceSolution:
         pyplot.title("instance solution visualization")
         pyplot.xlabel("execution time")
         pyplot.show()
-
-
-def load_txt(filename: str) -> Instance:
-    """Creates a py:class:`Instance` object from a valid txt file.
-
-    :param filename: name of the text file
-    :return: created object
-    """
-    with open(filename, 'r') as source:
-        try:
-            processors_number = int(source.readline())
-            tasks_number = int(source.readline())
-            tasks_durations = list(map(int, source.read().strip().split('\n')))
-        except ValueError:
-            raise FileContentError(
-                f"file must contain <processors_number> and <tasks_number>, every value must be an \\n separated int"
-            )
-
-        if processors_number <= 0:
-            raise FileContentError(f"number of processors must be > 0, not ({processors_number})")
-        if tasks_number < 0:
-            raise FileContentError(f"number of tasks must be >= 0, not ({tasks_number})")
-        if len(tasks_durations) != tasks_number:
-            raise FileContentError(
-                f"declared number of tasks ({tasks_number}) is not equal to the length of tasks durations list"
-            )
-
-    return Instance(processors_number, tasks_durations)
-
-
-def save_txt(filename: str, instance: Instance):
-    """Saves a py:class:`ProblemInstance` object in a txt file.
-
-    :param filename: name of the text file
-    :param instance: object to be saved to a text file
-    """
-    with open(filename, 'w') as target:
-        print(instance.processors_number, file=target)
-        print(len(instance.tasks_durations), file=target)
-
-        for i in range(len(instance.tasks_durations)):
-            print(instance.tasks_durations[i], file=target)
