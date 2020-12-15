@@ -1,6 +1,8 @@
 import copy
 import random
 from scheduler.problem import Instance, InstanceSolution
+from itertools import cycle
+
 
 GENERATIONS = 128
 
@@ -15,8 +17,7 @@ class GeneticSolution:
     def __init__(self, instance, tasks_mapping):
         self.instance = instance
         self.tasks_mapping = tasks_mapping
-
-        self.processors_times = [0] * self.instance.processors_number
+        self.processors_times = [0 for _ in range(self.instance.processors_number)]
         for task_index, processor_index in enumerate(tasks_mapping):
             self.processors_times[processor_index] += instance.tasks_durations[task_index]
 
@@ -82,28 +83,47 @@ class GeneticSolution:
         for task, choice in enumerate(solution["tasks_mapping"]):
             if choice == -1:
                 processor = min(enumerate(solution["processors_times"]), key=lambda x: x[1])[0]
-                print(list(enumerate(solution["processors_times"])))
                 solution["tasks_mapping"][task] = processor
                 solution["processors_times"][processor] += self.instance.tasks_durations[task]
         return GeneticSolution(self.instance, solution["tasks_mapping"])
 
     def mutate(self):
-        task_index = random.randrange(len(self.instance.tasks_durations))
-        processor_index = random.randrange(self.instance.processors_number)
-
-        task_duration = self.instance.tasks_durations[task_index]
-
-        previous_processor_index = self.tasks_mapping[task_index]
-        self.tasks_mapping[task_index] = processor_index
-
-        self.processors_times[previous_processor_index] -= task_duration
-        self.processors_times[processor_index] += task_duration
-        self.max_time = max(self.processors_times)
+        result = copy.deepcopy(self)
+        processor_1 = random.randrange(result.instance.processors_number)
+        processor_2 = random.randrange(1, result.instance.processors_number)
+        processor_2 = (processor_1 + processor_2) % self.instance.processors_number
+        tasks_1 = list(filter(lambda x: x[1] == processor_1, enumerate(result.tasks_mapping)))
+        tasks_2 = list(filter(lambda x: x[1] == processor_2, enumerate(result.tasks_mapping)))
+        if tasks_1 != []:
+            index_1 = random.choice(tasks_1)[0]
+        else:
+            index_1 = random.randrange(len(result.tasks_mapping))
+            processor_1 = result.tasks_mapping[index_1]
+        if tasks_2 != []:
+            index_2 = random.choice(tasks_2)[0]
+        else:
+            index_2 = random.randrange(len(result.tasks_mapping))
+            processor_2 = result.tasks_mapping[index_2]
+        result.tasks_mapping[index_1] = processor_2
+        result.tasks_mapping[index_2] = processor_1
+        difference = result.instance.tasks_durations[index_1] - result.instance.tasks_durations[index_2]
+        result.processors_times[processor_1] -= difference
+        result.processors_times[processor_2] += difference
+        return result
 
     @staticmethod
     def random(instance):
         tasks_number = len(instance.tasks_durations)
-        tasks_mapping = [random.randrange(instance.processors_number) for _ in range(tasks_number)]
+        tasks_mapping = [0 for _ in range(tasks_number)]
+        splitter = 0
+        if tasks_number > instance.processors_number:
+            splitter = random.randrange(tasks_number - instance.processors_number)
+        for task in range(splitter):
+            tasks_mapping[task] = random.randrange(instance.processors_number)
+        for processor, task in enumerate(range(splitter, splitter + instance.processors_number)):
+            tasks_mapping[task] = processor
+        for task in range(splitter + instance.processors_number, tasks_number):
+            tasks_mapping[task] = random.randrange(instance.processors_number)
         return GeneticSolution(instance, tasks_mapping)
 
 
@@ -125,11 +145,8 @@ def solve(instance: Instance) -> InstanceSolution:
     for _ in range(GENERATIONS):
         best_specimens = sorted(population, key=lambda x: x.score())[:BEST_SPECIMENS]
         crossed = cross_list_of_specimens(best_specimens)
-        for specimen in crossed:
-            if random.random() < 0.112 / 0.997:
-                specimen.mutate()
-
-        population = sum([copy.deepcopy(crossed) for _ in range(POPULATION_SIZE)], [])
+        mutated = [solution.mutate() for solution, _ in zip(cycle(crossed), range(POPULATION_SIZE - len(crossed)))]
+        population = copy.deepcopy(crossed) + copy.deepcopy(mutated)
         random.shuffle(population)
 
     best_solution = min(population, key=lambda x: x.score())
