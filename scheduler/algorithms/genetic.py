@@ -5,13 +5,8 @@ from scheduler.problem import Instance, InstanceSolution
 from collections import deque
 
 GENERATIONS = 128
-
-POPULATION_UNIT = 16
-POPULATION_SIZE = 64
-
-BEST_SPECIMENS = 2 * POPULATION_UNIT
-SPECIMENS_IN_POPULATION = POPULATION_SIZE * BEST_SPECIMENS
-
+POPULATION_SIZE = 1024
+BEST_SPECIMENS = 2
 
 class GeneticSolution:
     def __init__(self, instance, tasks_mapping):
@@ -44,14 +39,18 @@ class GeneticSolution:
         return self.max_time
 
     def cross(self, other):
-        result = [0] * len(self.tasks_mapping)
-        result[::2] = self.tasks_mapping[::2]
-        result[1::2] = other.tasks_mapping[1::2]
+        size = len(self.tasks_mapping)
+        point = random.randrange(size)
+        mapping_1 = self.tasks_mapping[:point] + other.tasks_mapping[point:]
+        mapping_2 = other.tasks_mapping[:point] + self.tasks_mapping[point:]
 
-        return GeneticSolution(self.instance, result)
+        return (
+            GeneticSolution(self.instance, mapping_1),
+            GeneticSolution(self.instance, mapping_2),
+        )
 
     def mutate(self):
-        task_index = random.randrange(len(self.instance.tasks_durations))
+        task_index = random.randrange(len(self.instance.task_duration))
         processor_index = random.randrange(self.instance.processors_number)
 
         task_duration = self.instance.tasks_durations[task_index]
@@ -76,20 +75,21 @@ def solve(instance: Instance) -> InstanceSolution:
     :param instance: valid problem instance
     :return: generated solution of a given problem instance
     """
-    population = [GeneticSolution.random(instance) for _ in range(POPULATION_SIZE)]
+    greedy_solution = GeneticSolution.from_instance_solution(greedy.solve(instance))
+    population = [copy.deepcopy(greedy_solution) for _ in range(POPULATION_SIZE)]
+
     for _ in range(GENERATIONS):
         best_specimens = sorted(population, key=lambda x: x.score())[:BEST_SPECIMENS]
-        best_specimen = best_specimens[0]
-        for index, specimen in enumerate(best_specimens[1:], 1):
-            best_specimens[index] = best_specimens[index].cross(best_specimen)
 
+        for index in range(0, BEST_SPECIMENS, 2):
+            crossed = best_specimens[index].cross(best_specimens[index + 1])
+            best_specimens[index], best_specimens[index + 1] = crossed
 
-        for specimen in best_specimens:
-            if random.random() < 0.112 / 0.997:
-                specimen.mutate()
-
-        population = sum([copy.deepcopy(best_specimens) for _ in range(POPULATION_SIZE)], [])
+        population = sum([copy.deepcopy(best_specimens) for _ in range(POPULATION_SIZE // BEST_SPECIMENS)], [])
         random.shuffle(population)
+        for specimen in population:
+            if random.random() <= 0.01:
+                specimen.mutate()
 
     best_solution = min(population, key=lambda x: x.score())
     return best_solution.to_instance_solution()

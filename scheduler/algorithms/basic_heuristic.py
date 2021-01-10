@@ -4,10 +4,10 @@ from scheduler import greedy
 from scheduler.problem import Instance, InstanceSolution
 from collections import deque
 
-generations_number = 100
+generations_number = 200
 generation_size = 500
 best_specimens_number = 1
-swapped_pairs = 5
+swapped_pairs = 2
 
 def swap_two_random_elements_between_lists(list_1: list, list_2: list):
     index_1 = random.randrange(len(list_1))
