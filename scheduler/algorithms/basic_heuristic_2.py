@@ -1,15 +1,14 @@
 import copy
 import random
-from scheduler import greedy
+import scheduler
 from scheduler.problem import Instance, InstanceSolution
 from collections import deque
+
 
 GENERATIONS_NUMBER = 128
 GENERATION_SIZE = 256
 BEST_SPECIMENS = 8
 MUTATION_PROBABILITY = 0.1
-
-
 
 
 def run_by_index(callback, iterable):
@@ -114,7 +113,7 @@ def solve(instance: Instance) -> InstanceSolution:
     :return: generated solution of a given problem instance
     """
 
-    greedy_solution = greedy.solve(instance)
+    greedy_solution = scheduler.lpt.solve(instance)
     best_specimens = [GeneticSolution(copy.deepcopy(greedy_solution)) for _ in range(BEST_SPECIMENS)]
 
     for _ in range(GENERATIONS_NUMBER):

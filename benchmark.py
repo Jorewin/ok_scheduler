@@ -9,8 +9,7 @@ if len(sys.argv) != 2:
 
 instance = scheduler.problem.load_txt(sys.argv[1])
 algorithms = [
-    ('greedy', scheduler.greedy.solve),
-    ('basic_1', scheduler.basic_heuristic.solve),
+    ('lpt', scheduler.lpt.solve),
     ('basic_2', scheduler.basic_heuristic_2.solve)
 ]
 
