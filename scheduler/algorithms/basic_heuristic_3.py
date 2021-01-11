@@ -8,7 +8,7 @@ import scheduler
 from scheduler.problem import Instance, InstanceSolution
 
 
-WORKING_TIME = 30 # seconds
+WORKING_TIME = 300 # seconds
 THREADS = 16
 THREAD_POPULATION_SIZE = 32
 BEST_SPECIMENS_PER_THREAD = 6
@@ -23,7 +23,7 @@ def index_of_max(iterable):
 
 class SolutionsQueue:
     def __init__(self, size):
-        self.stored_elements = math.ceil(math.log(size + 1, 2))
+        self.stored_elements = 2 ** math.ceil(math.log(size + 1, 2))
         self.queue = []
         self.lock = Lock()
 
@@ -35,8 +35,8 @@ class SolutionsQueue:
 
     def pop(self):
         while True:
-            if not self.empty():
-                with self.lock:
+            with self.lock:
+                if not self.empty():
                     return heapq.heappop(self.queue)
 
     def empty(self):
