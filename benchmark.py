@@ -8,9 +8,13 @@ if len(sys.argv) != 2:
     sys.exit(1)
 
 instance = scheduler.problem.load_txt(sys.argv[1])
+
+print("OPT >= ", sum(instance.tasks_durations) / instance.processors_number)
+
+
 algorithms = [
-    ('lpt', scheduler.lpt.solve),
-    ('basic_2', scheduler.basic_heuristic_2.solve)
+    #('lpt', scheduler.lpt.solve),
+    ('basic_3', scheduler.basic_heuristic_3.solve)
 ]
 
 for algorithm, callback in algorithms:

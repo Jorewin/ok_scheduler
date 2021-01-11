@@ -4,6 +4,7 @@ from .algorithms import greedy
 from .algorithms import lpt
 from .algorithms import basic_heuristic
 from .algorithms import basic_heuristic_2
+from .algorithms import basic_heuristic_3
 from .algorithms import genetic
 from .problem import Instance, InstanceSolution
 from .generator import generate

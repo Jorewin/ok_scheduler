@@ -118,3 +118,4 @@ def save_txt(filename: str, instance: Instance):
 
         for i in range(len(instance.tasks_durations)):
             print(instance.tasks_durations[i], file=target)
+
