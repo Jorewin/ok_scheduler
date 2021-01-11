@@ -13,7 +13,6 @@ print("OPT >= ", sum(instance.tasks_durations) / instance.processors_number)
 
 
 algorithms = [
-    #('lpt', scheduler.lpt.solve),
     ('basic_3', scheduler.basic_heuristic_3.solve)
 ]
 

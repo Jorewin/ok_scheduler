@@ -1,8 +1,8 @@
+import math
 import copy
+import heapq
 import random
 from threading import Event, Timer, Thread, Lock
-from heapq import nsmallest
-from queue import PriorityQueue
 
 import scheduler
 from scheduler.problem import Instance, InstanceSolution
@@ -10,8 +10,8 @@ from scheduler.problem import Instance, InstanceSolution
 
 WORKING_TIME = 30 # seconds
 THREADS = 16
-THREAD_POPULATION_SIZE = 16
-BEST_SPECIMENS_PER_THREAD = 4
+THREAD_POPULATION_SIZE = 32
+BEST_SPECIMENS_PER_THREAD = 6
 
 
 def index_of_min(iterable):
@@ -19,6 +19,28 @@ def index_of_min(iterable):
 
 def index_of_max(iterable):
     return max(enumerate(iterable), key=lambda x: x[1])[0]
+
+
+class SolutionsQueue:
+    def __init__(self, size):
+        self.stored_elements = math.ceil(math.log(size + 1, 2))
+        self.queue = []
+        self.lock = Lock()
+
+    def push(self, element):
+        with self.lock:
+            heapq.heappush(self.queue, element)
+            if len(self.queue) > self.stored_elements:
+                self.queue = self.queue[:self.stored_elements]
+
+    def pop(self):
+        while True:
+            if not self.empty():
+                with self.lock:
+                    return heapq.heappop(self.queue)
+
+    def empty(self):
+        return len(self.queue) == 0
 
 
 # Odwołuje się do zadań normalnie po wartościach, nie indeksach
@@ -95,22 +117,19 @@ class GeneticSolution(InstanceSolution):
             self.total_time = max(self.processors_times)
 
 
-lock = Lock()
 
 def algorithm_thread(best_solutions, stop_event):
     while not stop_event.is_set():
-        with lock:
-            parent = best_solutions.get()
-            print(parent.score())
+        parent = best_solutions.pop()
         
         population = [copy.deepcopy(parent) for _ in range(THREAD_POPULATION_SIZE)]
         for specimen in population:
             specimen.mutate()
 
-        best_specimens = nsmallest(BEST_SPECIMENS_PER_THREAD, population, key=lambda s: s.score())
+        best_specimens = heapq.nsmallest(BEST_SPECIMENS_PER_THREAD, population, key=lambda s: s.score())
         for specimen in best_specimens:
             specimen.cross()
-            best_solutions.put(specimen)
+            best_solutions.push(specimen)
 
 
 
@@ -122,7 +141,7 @@ def solve(instance: Instance) -> InstanceSolution:
     :return: generated solution of a given problem instance
     """
 
-    best_solutions = PriorityQueue()
+    best_solutions = SolutionsQueue(THREAD_POPULATION_SIZE * THREADS)
     stop_event = Event()
     Timer(WORKING_TIME, lambda: stop_event.set()).start()
 
@@ -132,7 +151,7 @@ def solve(instance: Instance) -> InstanceSolution:
 
     for _ in range(THREADS):
         copied_solution = copy.deepcopy(genetic_solution)
-        best_solutions.put(copied_solution)
+        best_solutions.push(copied_solution)
 
         t = Thread(target=algorithm_thread, args=(best_solutions, stop_event))
         t.start()
@@ -141,7 +160,7 @@ def solve(instance: Instance) -> InstanceSolution:
     for thread in threads:
         thread.join()
 
-    return genetic_solution if best_solutions.empty() else best_solutions.get()
+    return genetic_solution if best_solutions.empty() else best_solutions.pop()
 
 
 __all__ = ["solve"]
