@@ -36,7 +36,7 @@ def solve():
     "-i", "source", prompt=True, help="Path to the instance file.", type=click.Path(exists=True)
 )
 @click.option(
-    "-o", "target", help="output", default=None, type=click.Path(exists=True, writable=True)
+    "-o", "target", help="output", default=None, type=click.Path(writable=True)
 )
 @click.option("-p", "population_size", prompt=True, help="Size of the population.", type=int)
 @click.option("-b", "best_specimens_group_size", prompt=True, help="Size of the best specimens group.", type=int)
@@ -51,7 +51,8 @@ def jakub_genetic(source: str, target: str, population_size: int, best_specimens
     else:
         new = datetime.datetime.now()
         if period is not None:
-            period = period.replace(year=new.year, month=new.month, day=new.day, tzinfo=new.tzinfo).timestamp()
+            period = new + datetime.timedelta(hours=period.hour, minutes=period.minute, seconds=period.second)
+            period = period.timestamp()
         else:
             period = 0
         extras = {
