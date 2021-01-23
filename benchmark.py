@@ -7,7 +7,7 @@ if len(sys.argv) != 2:
     print('Incorrect usage', file=sys.stderr)
     sys.exit(1)
 
-instance = scheduler.problem.load_txt(sys.argv[1])
+instance = scheduler.problem.Instance.load_txt(sys.argv[1])
 
 print("OPT >= ", sum(instance.tasks_durations) / instance.processors_number)
 
