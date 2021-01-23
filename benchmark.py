@@ -13,7 +13,7 @@ print("OPT >= ", sum(instance.tasks_durations) / instance.processors_number)
 
 
 algorithms = [
-    ('basic_3', scheduler.basic_heuristic_3.solve)
+    ('eryk_heuristic', scheduler.eryk_heuristic.solve)
 ]
 
 for algorithm, callback in algorithms:

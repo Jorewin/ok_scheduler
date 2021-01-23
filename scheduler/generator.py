@@ -34,37 +34,38 @@ def generate_list_which_sums_to_value(sum_value: int, list_length: int, elements
     return result_list
 
 
-def generate(cmax: int, tasks_number: int, processors_number: int, task_duration_range: (int, int)) -> Instance:
+def generate(cmax: int, tasks_number: int, processors_number: int, task_duration_max: int) -> Instance:
     """Function generate a dataset for P||Cmax problem
 
     :param cmax: Total time of execution of all tasks
     :param tasks_number: Number of tasks that should be generated
     :param processors_number: Number of processors on which tasks will be executed
-    :param task_duration_range: A closed range of possible task durations (which are integers) represented
+    :param task_duration_max: Max value of task duration
     as a tuple (min, max)
     :return: Generated problem instance
     """
 
     # Set up some necessary values
-    task_duration_min, task_duration_max = task_duration_range
-    distinguished_task_duration = task_duration_min
-    tasks_rectangle_width = cmax - distinguished_task_duration
+    tasks_rectangle_width = cmax - 1
     tasks_in_rectangle = tasks_number - 1
     total_length_of_rest_of_tasks = processors_number * tasks_rectangle_width
     
-    max_tasks_per_processor = math.floor(tasks_rectangle_width / task_duration_min)
+    max_tasks_per_processor = math.floor(tasks_rectangle_width / 2)
     min_tasks_per_processor = math.ceil(tasks_rectangle_width / task_duration_max)
     tasks_per_processor_range = (min_tasks_per_processor, max_tasks_per_processor)
    
     # Checking some constraints
-    if not (task_duration_min * tasks_number <= total_length_of_rest_of_tasks + distinguished_task_duration <= task_duration_max * tasks_number):
+    if not (2 * tasks_in_rectangle <= total_length_of_rest_of_tasks <= task_duration_max * tasks_in_rectangle):
         raise IncorrectGeneratorDatasetError('Cmax is out of possible ranges')
 
-    result_list = [distinguished_task_duration]
+    result_list = [1]
 
     tasks_per_procesor = generate_list_which_sums_to_value(tasks_in_rectangle, processors_number, tasks_per_processor_range)
     for tasks_number in tasks_per_procesor:
-        result_list += generate_list_which_sums_to_value(tasks_rectangle_width, tasks_number, task_duration_range)
+        result_list += generate_list_which_sums_to_value(tasks_rectangle_width, tasks_number, (2, task_duration_max))
+
+
+    random.shuffle(result_list)
 
     return Instance(processors_number, result_list)
 

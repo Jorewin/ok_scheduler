@@ -7,9 +7,8 @@ from threading import Event, Timer, Thread, Lock
 import scheduler
 from scheduler.problem import Instance, InstanceSolution
 
-
-WORKING_TIME = 300 # seconds
-THREADS = 16
+WORKING_TIME = 60 # seconds
+THREADS = 8
 THREAD_POPULATION_SIZE = 32
 BEST_SPECIMENS_PER_THREAD = 6
 
@@ -95,26 +94,33 @@ class GeneticSolution(InstanceSolution):
         end_processor_index = index_of_min(self.processors_times)
         processors_difference = self.processors_times[start_processor_index] - self.processors_times[end_processor_index]
 
-        if len(self.processors[start_processor_index]) == 0 or len(self.processors[end_processor_index]) == 0:
-            return
-
+        # Zakładam, że w problemie szeregowania jest przynajmniej jedno zadanie (znajduje się na najbardziej obciążonym procesorze)
         start_task_index = random.randrange(len(self.processors[start_processor_index]))
-        end_task_index = index_of_min(map(
-            lambda task: abs(processors_difference - 2 * (self.processors[start_processor_index][start_task_index] - task)),
-            self.processors[end_processor_index]
-        ))
 
-        first_task = self.processors[start_processor_index][start_task_index]
-        second_task = self.processors[end_processor_index][end_task_index]
-        tasks_difference = first_task - second_task
-
-        if tasks_difference > 0 and tasks_difference < processors_difference:
-            self.processors[start_processor_index][start_task_index] = second_task
-            self.processors[end_processor_index][end_task_index] = first_task
-
-            self.processors_times[start_processor_index] -= tasks_difference
-            self.processors_times[end_processor_index] += tasks_difference
+        if len(self.processors[end_processor_index]) == 0:
+            first_task = self.processors[start_processor_index].pop(start_task_index)
+            self.processors[end_processor_index].append(first_task)
+            
+            self.processors_times[start_processor_index] -= first_task
+            self.processors_times[end_processor_index] += first_task
             self.total_time = max(self.processors_times)
+        else:
+            end_task_index = index_of_min(map(
+                lambda task: abs(processors_difference - 2 * (self.processors[start_processor_index][start_task_index] - task)),
+                self.processors[end_processor_index]
+            ))
+
+            first_task = self.processors[start_processor_index][start_task_index]
+            second_task = self.processors[end_processor_index][end_task_index]
+            tasks_difference = first_task - second_task
+
+            if tasks_difference > 0 and tasks_difference < processors_difference:
+                self.processors[start_processor_index][start_task_index] = second_task
+                self.processors[end_processor_index][end_task_index] = first_task
+
+                self.processors_times[start_processor_index] -= tasks_difference
+                self.processors_times[end_processor_index] += tasks_difference
+                self.total_time = max(self.processors_times)
 
 
 
@@ -145,7 +151,8 @@ def solve(instance: Instance) -> InstanceSolution:
     stop_event = Event()
     Timer(WORKING_TIME, lambda: stop_event.set()).start()
 
-    lpt_solution = scheduler.lpt.solve(instance)
+    #lpt_solution = scheduler.lpt.solve(instance)
+    lpt_solution = scheduler.greedy.solve(instance)
     genetic_solution = GeneticSolution(lpt_solution)
     threads = []
 
