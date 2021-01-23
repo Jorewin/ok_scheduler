@@ -56,9 +56,9 @@ def jakub_genetic(source: str, target: str, population_size: int, best_specimens
         else:
             period = 0
         extras = {
-            "time period": parse_time(period),
+            "time_period": 0.0,
             "population_size": population_size,
-            "best specimens group size": best_specimens_group_size
+            "best_specimens_group_size": best_specimens_group_size
         }
         instance = scheduler.Instance.load_txt(source)
         if target is None:
@@ -73,7 +73,8 @@ def jakub_genetic(source: str, target: str, population_size: int, best_specimens
         try:
             for generation, solution in zip(itertools.count(1, 1), generator):
                 if period != 0 and time.time() >= period:
-                    best_solution.save_txt(get_file_name(target, "toml"), extras=extras)
+                    extras.update({"time_period": parse_time(time.time() - start)})
+                    best_solution.save_toml(get_file_name(target, "toml"), extras=extras)
                     return
                 best_solution = min(best_solution, solution, key=lambda x: x.total_time)
                 total_times[(generation - 1)%100] = solution.total_time
@@ -90,7 +91,6 @@ def jakub_genetic(source: str, target: str, population_size: int, best_specimens
                     flush=True
                 )
         except KeyboardInterrupt as error:
-            best_solution.save_txt(
-                get_file_name(target, "toml"), extras=extras.update({"time period": parse_time(time.time() - start)})
-            )
+            extras.update({"time_period": parse_time(time.time() - start)})
+            best_solution.save_toml(get_file_name(target, "toml"), extras=extras)
             raise KeyboardInterrupt(error)
