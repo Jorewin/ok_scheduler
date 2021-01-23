@@ -51,19 +51,17 @@ class Instance:
 
         return Instance(processors_number, tasks_durations)
 
-    @staticmethod
-    def save_txt(filename: str, instance: Instance):
+    def save_txt(self, filename: str):
         """Saves a py:class:`ProblemInstance` object in a txt file.
 
         :param filename: name of the text file
-        :param instance: object to be saved to a text file
         """
         with open(filename, 'w') as target:
-            print(instance.processors_number, file=target)
-            print(len(instance.tasks_durations), file=target)
+            print(self.processors_number, file=target)
+            print(len(self.tasks_durations), file=target)
 
-            for i in range(len(instance.tasks_durations)):
-                print(instance.tasks_durations[i], file=target)
+            for i in range(len(self.tasks_durations)):
+                print(self.tasks_durations[i], file=target)
 
 
 class InstanceSolution:
