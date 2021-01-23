@@ -8,6 +8,7 @@ import click
 import scheduler
 from threading import Event, Timer
 
+
 def get_file_name(name, extension):
     match = re.search(f"(.+)(.{extension})", name)
     if match is not None:
@@ -113,7 +114,14 @@ def jakub_genetic(source: str, target: str, population_size: int, best_specimens
 def eryk_genetic(source: str, target: str, threads: int, thread_population_size: int, best_specimens_per_thread: int, period: datetime.datetime):
     """Solves the instance read from input and writes the result to the output after KeyboardInterrupt."""
 
+    extras = {
+        'threads_number': threads,
+        'thread_population_size': thread_population_size,
+        'best_specimens_per_thread': best_specimens_per_thread
+    }
+
     stop_event = Event()
+    start_time = time.time()
     if period is not None:
         Timer(period.hour * 3600 + period.minute * 60 + period.second, lambda: stop_event.set()).start()
 
@@ -121,22 +129,25 @@ def eryk_genetic(source: str, target: str, threads: int, thread_population_size:
     if target is None:
         target = f"eryk_genetic-m{instance.processors_number}n{len(instance.tasks_durations)}"
 
-
-    def update_interface(current_best):
+    def update_interface(queue):
+        current_best = queue.best()
         print(
-            f"Best solution: {current_best.total_time}",
+            f"Elapsed time: {parse_time(time.time() - start_time)}",
+            f"Best solution: {current_best.total_time:8}",
             sep=" | ",
             end="\r",
             flush=True
         )
         
     try:
-        queue = scheduler.eryk_heuristic.init_queue(threads, thread_population_size)
-        scheduler.eryk_heuristic.solve(instance, queue, stop_event, update_interface, threads, thread_population_size, best_specimens_per_thread)
-        queue.pop().save_toml(get_file_name(target, "toml"))
+        results_queue = scheduler.eryk_heuristic.SolutionsQueue(4)
+        scheduler.eryk_heuristic.solve(instance, results_queue, stop_event, update_interface, threads, thread_population_size, best_specimens_per_thread)
+        results_queue.pop().save_toml(get_file_name(target, "toml"), { **extras, 'period': period })
     except KeyboardInterrupt as error:
         stop_event.set()
-        queue.pop().save_toml(get_file_name(target, "toml"))
+        end_time = time.time()
+
+        results_queue.pop().save_toml(get_file_name(target, "toml"), { **extras, 'period': parse_time(end_time - start_time) })
         raise error
 
 

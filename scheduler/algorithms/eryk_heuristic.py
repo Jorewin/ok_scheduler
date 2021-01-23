@@ -42,7 +42,8 @@ class SolutionsQueue:
         return len(self.queue) == 0
 
     def best(self):
-        return self.queue[0]
+        with self.lock:
+            return self.queue[0]
 
 
 # Odwołuje się do zadań normalnie po wartościach, nie indeksach
@@ -127,7 +128,7 @@ class GeneticSolution(InstanceSolution):
 
 
 
-def algorithm_thread(queue, stop_event, solution_produced, thread_population_size, best_specimens_per_thread):
+def algorithm_thread(queue, results_queue, stop_event, solution_produced, thread_population_size, best_specimens_per_thread):
     while not stop_event.is_set():
         parent = queue.pop()
         
@@ -140,14 +141,11 @@ def algorithm_thread(queue, stop_event, solution_produced, thread_population_siz
             specimen.cross()
             queue.push(specimen)
 
-        solution_produced(queue.best())
+        results_queue.push(queue.best())
+        solution_produced(results_queue)
 
 
-def init_queue(threads_number=THREADS, thread_population_size=THREAD_POPULATION_SIZE):
-    return SolutionsQueue(thread_population_size * threads_number)
-
-
-def solve(instance: Instance, queue: SolutionsQueue, stop_event: Event, solution_produced, threads_number=THREADS,
+def solve(instance: Instance, results_queue: SolutionsQueue, stop_event: Event, solution_produced, threads_number=THREADS,
           thread_population_size=THREAD_POPULATION_SIZE, best_specimens_per_thread=BEST_SPECIMENS_PER_THREAD) -> InstanceSolution:
     """Solves the P||Cmax problem by using a basic heuristic.
 
@@ -157,15 +155,18 @@ def solve(instance: Instance, queue: SolutionsQueue, stop_event: Event, solution
     :return: generated solution of a given problem instance
     """
 
-    lpt_solution = scheduler.lpt.solve(instance)
+    # lpt_solution = scheduler.lpt.solve(instance)
+    lpt_solution = scheduler.greedy.solve(instance)
     genetic_solution = GeneticSolution(lpt_solution)
     threads = []
+
+    queue = SolutionsQueue(thread_population_size * threads_number)
 
     for _ in range(threads_number):
         copied_solution = copy.deepcopy(genetic_solution)
         queue.push(copied_solution)
 
-        t = Thread(target=algorithm_thread, args=(queue, stop_event, solution_produced, thread_population_size, best_specimens_per_thread))
+        t = Thread(target=algorithm_thread, args=(queue, results_queue, stop_event, solution_produced, thread_population_size, best_specimens_per_thread))
         t.start()
         threads.append(t)
 

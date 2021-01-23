@@ -4,6 +4,7 @@ from .algorithms import greedy
 from .algorithms import jakub_genetic
 from .algorithms import lpt
 from .algorithms import eryk_heuristic
+from .algorithms.eryk_heuristic import SolutionsQueue
 from .problem import Instance, InstanceSolution
 from .generator import generate
 
