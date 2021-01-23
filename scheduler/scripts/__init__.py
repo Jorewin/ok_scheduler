@@ -1,13 +1,17 @@
 import os.path
 import time
+import datetime
 import itertools
+import re
 import math
-import pickle
 import click
 import scheduler
 
 
-def get_name(name, extension):
+def get_file_name(name, extension):
+    match = re.search(f"(.+)(.{extension})", name)
+    if match is not None:
+        name = match.group(1)
     i = 1
     while os.path.isfile(f"{name}_{i}.{extension}"):
         i += 1
@@ -22,17 +26,42 @@ def parse_time(seconds):
     return f"{int(hours):0>2}:{int(minutes):0>2}:{int(seconds):0>2}"
 
 
-@click.command()
+@click.group()
+def solve():
+    """Solves the P||Cmax problem using the specified algorithm."""
+
+
+@solve.command()
 @click.option(
-    "-i", "--input", "input", prompt=True, help="Path to the instance file.", type=click.Path(exists=True)
+    "-i", "source", prompt=True, help="Path to the instance file.", type=click.Path(exists=True)
+)
+@click.option(
+    "-o", "target", help="output", default=None, type=click.Path(exists=True, writable=True)
 )
 @click.option("-p", "population_size", prompt=True, help="Size of the population.", type=int)
 @click.option("-b", "best_specimens_group_size", prompt=True, help="Size of the best specimens group.", type=int)
-def solve(input, population_size, best_specimens_group_size):
+@click.option(
+    "-t", "period", default=None, help="Processing time fmt = HH:MM:SS/MM:SS/SS",
+    type=click.DateTime(["%H:%M:%S", "%M:%S", "%S"])
+)
+def jakub_genetic(source: str, target: str, population_size: int, best_specimens_group_size: int, period: datetime.datetime):
+    """Solves the instance read from input and writes the result to the output after KeyboardInterrupt."""
     if best_specimens_group_size > population_size:
         raise ValueError("best_specimens_group_size can't be higher than the population_size")
     else:
-        instance = scheduler.Instance.load_txt(input)
+        new = datetime.datetime.now()
+        if period is not None:
+            period = period.replace(year=new.year, month=new.month, day=new.day, tzinfo=new.tzinfo).timestamp()
+        else:
+            period = 0
+        extras = {
+            "time period": parse_time(period),
+            "population_size": population_size,
+            "best specimens group size": best_specimens_group_size
+        }
+        instance = scheduler.Instance.load_txt(source)
+        if target is None:
+            target = f"jakub_genetic-m{instance.processors_number}n{len(instance.tasks_durations)}"
         generator = scheduler.jakub_genetic.solution_generator(instance, population_size, best_specimens_group_size)
         best_solution = scheduler.greedy.solve(instance)
         total_times = [best_solution.total_time for _ in range(100)]
@@ -42,6 +71,9 @@ def solve(input, population_size, best_specimens_group_size):
         solution_width = math.ceil(math.log10(best_solution.total_time))
         try:
             for generation, solution in zip(itertools.count(1, 1), generator):
+                if period != 0 and time.time() >= period:
+                    best_solution.save_txt(get_file_name(target, "toml"), extras=extras)
+                    return
                 best_solution = min(best_solution, solution, key=lambda x: x.total_time)
                 total_times[(generation - 1)%100] = solution.total_time
                 average = sum(total_times)/len(total_times)
@@ -57,10 +89,7 @@ def solve(input, population_size, best_specimens_group_size):
                     flush=True
                 )
         except KeyboardInterrupt as error:
-            with open(get_name(input[:-4], "obj"), "wb") as target:
-                pickle.dump(best_solution, target)
+            best_solution.save_txt(
+                get_file_name(target, "toml"), extras=extras.update({"time period": parse_time(time.time() - start)})
+            )
             raise KeyboardInterrupt(error)
-
-
-if __name__ == "__main__":
-    solve()

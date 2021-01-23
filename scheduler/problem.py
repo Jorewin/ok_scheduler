@@ -1,6 +1,7 @@
 from __future__ import annotations
 import matplotlib.pyplot as pyplot
 import numpy
+import toml
 from .exceptions import FileContentError
 
 
@@ -52,7 +53,7 @@ class Instance:
         return Instance(processors_number, tasks_durations)
 
     def save_txt(self, filename: str):
-        """Saves a py:class:`ProblemInstance` object in a txt file.
+        """Saves a py:class:`Instance` object in a txt file.
 
         :param filename: name of the text file
         """
@@ -117,3 +118,66 @@ class InstanceSolution:
         pyplot.title("instance solution visualization")
         pyplot.xlabel("execution time")
         pyplot.show()
+
+    def save_txt(self, filename: str, extras: dict = None):
+        """Saves a py:class:`InstanceSolution` object alongside additional data in a toml file.
+
+        :param filename: name of the toml file
+        :param extras: dictionary containing additional simulation data
+        """
+        package = {
+            "results": {"total time": self.total_time},
+            "simulation data": extras,
+            "solution": {f"Processor {i}": j for i, j in enumerate(self.processors)},
+            "instance": {
+                "Number of processors": self.instance.processors_number,
+                "Number of tasks": len(self.instance.tasks_durations),
+                "Tasks durations": self.instance.tasks_durations
+            }
+        }
+        with open(filename, 'w') as target:
+            toml.dump(package, target)
+
+    @staticmethod
+    def load_txt(filename: str) -> (InstanceSolution, dict):
+        """
+
+        :param filename: name of the toml file
+        :return: created object and simulation data
+        """
+        with open(filename, 'r') as source:
+            package = toml.load(source)
+        if "instance" not in package:
+            raise FileContentError("file doesn't define instance")
+        if "results" not in package:
+            raise FileContentError("file doesn't contain results")
+        if "solution" not in package:
+            raise FileContentError("file doesn't define solution")
+        instance = Instance(
+            package["instance"].get("Number of processors"),
+            package["instance"].get("Tasks durations")
+        )
+        if instance.tasks_durations is None or instance.processors_number is None:
+            raise FileContentError("instance definition is not complete")
+        if len(instance.tasks_durations) != package["instance"].get("Number of tasks"):
+            raise FileContentError("instance definition is corrupted")
+        if len(package["solution"]) != instance.processors_number:
+            raise FileContentError("solution definition is corrupted")
+        processors = []
+        tasks = [False for _ in instance.tasks_durations]
+        for i in range(instance.processors_number):
+            processor = package["solution"].get(f"Processor {i}")
+            if processor is None:
+                raise FileContentError("solution definition is corrupted")
+            for task in processor:
+                if task >= len(tasks):
+                    raise FileContentError("solution definition is corrupted")
+                if tasks[task]:
+                    raise FileContentError("solution definition is corrupted")
+                else:
+                    tasks[task] = True
+            processors.append(processor)
+        solution = InstanceSolution(instance, processors)
+        if package["results"].get("total time") != solution.total_time:
+            raise FileContentError("results are corrupted")
+        return solution, package.get("simulation_data", {})
