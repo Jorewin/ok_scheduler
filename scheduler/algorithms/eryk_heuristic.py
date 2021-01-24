@@ -7,7 +7,7 @@ from threading import Event, Timer, Thread, Lock
 import scheduler
 from scheduler.problem import Instance, InstanceSolution
 
-WORKING_TIME = 60 # seconds
+# Default arguments
 THREADS = 8
 THREAD_POPULATION_SIZE = 32
 BEST_SPECIMENS_PER_THREAD = 6
@@ -40,6 +40,10 @@ class SolutionsQueue:
 
     def empty(self):
         return len(self.queue) == 0
+
+    def best(self):
+        with self.lock:
+            return self.queue[0]
 
 
 # Odwołuje się do zadań normalnie po wartościach, nie indeksach
@@ -124,50 +128,50 @@ class GeneticSolution(InstanceSolution):
 
 
 
-def algorithm_thread(best_solutions, stop_event):
+def algorithm_thread(queue, results_queue, stop_event, solution_produced, thread_population_size, best_specimens_per_thread):
     while not stop_event.is_set():
-        parent = best_solutions.pop()
+        parent = queue.pop()
         
-        population = [copy.deepcopy(parent) for _ in range(THREAD_POPULATION_SIZE)]
+        population = [copy.deepcopy(parent) for _ in range(thread_population_size)]
         for specimen in population:
             specimen.mutate()
 
-        best_specimens = heapq.nsmallest(BEST_SPECIMENS_PER_THREAD, population, key=lambda s: s.score())
+        best_specimens = heapq.nsmallest(best_specimens_per_thread, population, key=lambda s: s.score())
         for specimen in best_specimens:
             specimen.cross()
-            best_solutions.push(specimen)
+            queue.push(specimen)
+
+        results_queue.push(queue.best())
+        solution_produced(results_queue)
 
 
-
-
-def solve(instance: Instance) -> InstanceSolution:
+def solve(instance: Instance, results_queue: SolutionsQueue, stop_event: Event, solution_produced, threads_number=THREADS,
+          thread_population_size=THREAD_POPULATION_SIZE, best_specimens_per_thread=BEST_SPECIMENS_PER_THREAD) -> InstanceSolution:
     """Solves the P||Cmax problem by using a basic heuristic.
 
     :param instance: valid problem instance
+    :param stop_event: event for synchronization work of threads; it's been used for stopping algorithm
+    :param current_best_result_callback: callback used for returning partial results to runner on runtime
     :return: generated solution of a given problem instance
     """
 
-    best_solutions = SolutionsQueue(THREAD_POPULATION_SIZE * THREADS)
-    stop_event = Event()
-    Timer(WORKING_TIME, lambda: stop_event.set()).start()
-
-    #lpt_solution = scheduler.lpt.solve(instance)
+    # lpt_solution = scheduler.lpt.solve(instance)
     lpt_solution = scheduler.greedy.solve(instance)
     genetic_solution = GeneticSolution(lpt_solution)
     threads = []
 
-    for _ in range(THREADS):
-        copied_solution = copy.deepcopy(genetic_solution)
-        best_solutions.push(copied_solution)
+    queue = SolutionsQueue(thread_population_size * threads_number)
 
-        t = Thread(target=algorithm_thread, args=(best_solutions, stop_event))
+    for _ in range(threads_number):
+        copied_solution = copy.deepcopy(genetic_solution)
+        queue.push(copied_solution)
+
+        t = Thread(target=algorithm_thread, args=(queue, results_queue, stop_event, solution_produced, thread_population_size, best_specimens_per_thread))
         t.start()
         threads.append(t)
 
     for thread in threads:
         thread.join()
-
-    return genetic_solution if best_solutions.empty() else best_solutions.pop()
 
 
 __all__ = ["solve"]
