@@ -1,4 +1,5 @@
 from __future__ import annotations
+import matplotlib.axes as axes
 import matplotlib.pyplot as pyplot
 import numpy
 import toml
@@ -23,6 +24,13 @@ class Instance:
             raise ValueError(f"number of processors must be > 0, not ({processors_number})")
         self.processors_number = processors_number
         self.tasks_durations = tasks_durations
+
+    def __eq__(self, other: Instance) -> bool:
+        """Compares two Instance objects
+
+        :param other: other instance
+        """
+        return self.tasks_durations == other.tasks_durations and self.processors_number == other.processors_number
 
     @staticmethod
     def load_txt(filename: str) -> Instance:
@@ -101,8 +109,17 @@ class InstanceSolution:
             self.processors[processor_index]
         ))
 
-    def plot(self):
-        """Creates a graphical visualization of the solution."""
+    def plot(self, ax: pyplot.Axes = None) -> axes.Axes:
+        """Creates a graphical visualization of the solution.
+
+        :param ax: optional title
+        :return: filled ax if ax provided
+        """
+        if ax is None:
+            inplace = True
+            _, ax = pyplot.subplots()
+        else:
+            inplace = False
         y = numpy.arange(self.instance.processors_number)
         length = max([len(processor) for processor in self.processors])
         x = numpy.zeros((length, self.instance.processors_number))
@@ -111,13 +128,16 @@ class InstanceSolution:
                 x[j][self.instance.processors_number - 1 - i] = processor[j]
         sigma = numpy.zeros(self.instance.processors_number)
         for i in range(length):
-            pyplot.barh(y, x[i], left=sigma)
+            ax.barh(y, x[i], left=sigma)
             sigma += x[i]
         labels = [f"processor N°{i}" for i in range(self.instance.processors_number, 0, -1)]
-        pyplot.yticks(y, labels)
-        pyplot.title("instance solution visualization")
-        pyplot.xlabel("execution time")
-        pyplot.show()
+        ax.set_yticks(y)
+        ax.set_yticklabels(labels)
+        ax.set_title("instance solution visualization")
+        ax.set_xlabel("execution time")
+        if inplace:
+            pyplot.show()
+        return ax
 
     def save_toml(self, filename: str, extras: dict = None):
         """Saves a py:class:`InstanceSolution` object alongside additional data in a toml file.
