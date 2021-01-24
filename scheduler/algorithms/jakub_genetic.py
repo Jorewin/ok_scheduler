@@ -75,11 +75,11 @@ class GeneticSolution(InstanceSolution):
     def mutate(self, weights=None):
         tasks_mapping = copy.deepcopy(self.tasks_mapping)
         # processor_1 = random.randrange(self.instance.processors_number)
-        # processor_2 = random.randrange(1, self.instance.processors_number)
-        # processor_2 = (processor_1 + processor_2) % self.instance.processors_number
-        processor_1, processor_2 = numpy.random.default_rng().choice(
-            self.instance.processors_number, size=2, replace=False, p=weights, shuffle=False
+        processor_1, = numpy.random.default_rng().choice(
+            self.instance.processors_number, size=1, replace=False, p=weights, shuffle=False
         )
+        processor_2 = random.randrange(1, self.instance.processors_number)
+        processor_2 = (processor_1 + processor_2) % self.instance.processors_number
         if self.processors[processor_1] != []:
             index_1 = random.choice(self.processors[processor_1])
             tasks_mapping[index_1] = processor_2
@@ -92,7 +92,7 @@ class GeneticSolution(InstanceSolution):
     def random(instance):
         tasks_number = len(instance.tasks_durations)
         tasks_mapping = [0 for _ in range(tasks_number)]
-        splitter = 0
+        splitter = -instance.processors_number
         if tasks_number > instance.processors_number:
             splitter = random.randrange(tasks_number - instance.processors_number)
         for task in range(splitter):
@@ -145,4 +145,4 @@ def solve(instance: Instance) -> InstanceSolution:
     return best_solution.to_instance_solution()
 
 
-__all__ = ["solve", "solution_generator", "GeneticSolution"]
+# __all__ = ["solve", "solution_generator", "GeneticSolution"]

@@ -70,7 +70,7 @@ def jakub_genetic(source: str, target: str, population_size: int, best_specimens
         elif os.path.isdir(target):
             target = os.path.join(target, default)
         generator = scheduler.jakub_genetic.solution_generator(instance, population_size, best_specimens_group_size)
-        best_solution = scheduler.greedy.solve(instance)
+        best_solution = next(generator)
         total_times = [best_solution.total_time for _ in range(100)]
         start = time.time()
         average = 0
