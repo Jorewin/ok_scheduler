@@ -147,7 +147,7 @@ def eryk_genetic(source: str, target: str, threads: int, thread_population_size:
             end="\r",
             flush=True
         )
-        
+       
     try:
         results_queue = scheduler.eryk_heuristic.SolutionsQueue(4)
         scheduler.eryk_heuristic.solve(instance, results_queue, stop_event, update_interface, threads, thread_population_size, best_specimens_per_thread)
