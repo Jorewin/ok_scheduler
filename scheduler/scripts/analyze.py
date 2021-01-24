@@ -49,7 +49,7 @@ def compare(source_1: str, source_2: str):
         len(f"{solution_1.total_time}"), len(f"{solution_2.total_time}"),
         max([len(f"{i}") for i in extras_1.values()]), max([len(f"{i}") for i in extras_2.values()])
     )
-    common = filter(lambda x: x in extras_2, extras_1)
+    common = list(filter(lambda x: x in extras_2, extras_1))
     print(f"{name_1:{width_1}}", f"{solution_1.total_time:<{width_2}}", f"{solution_2.total_time:<{width_2}}")
     for key in common:
         print(f"{key:{width_1}}", f"{extras_1[key]:<{width_2}}", f"{extras_2[key]:<{width_2}}")
@@ -62,4 +62,6 @@ def compare(source_1: str, source_2: str):
     _, (ax_1, ax_2) = pyplot.subplots(1, 2)
     solution_1.plot(ax=ax_1)
     solution_2.plot(ax=ax_2)
+    ax_1.set_title(extras_1.get("algorithm", "unknown"))
+    ax_2.set_title(extras_2.get("algorithm", "unknown"))
     pyplot.show()
