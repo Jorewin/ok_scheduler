@@ -49,21 +49,8 @@ class SolutionsQueue:
 # Odwołuje się do zadań normalnie po wartościach, nie indeksach
 class GeneticSolution(InstanceSolution):
     def __init__(self, initial: InstanceSolution):
-        self.instance = initial.instance
-        self.total_time = initial.total_time
-        self.processors = list(map(
-            lambda p: list(map(
-                lambda t: self.instance.tasks_durations[t],
-                p
-            )),
-            initial.processors
-        ))
-
-        self.processors_times = list(map(sum, self.processors))
-
-    def __getitem__(self, processor_index: int):
-        return self.processors[processor_index]
-
+        super().__init__(initial.instance, initial.processors)
+        self.processors_times = list(map(sum, self))
 
     def __lt__(self, other):
         return self.score() < other.score()
@@ -84,8 +71,8 @@ class GeneticSolution(InstanceSolution):
             task = self.processors[start_processor_index].pop(start_task_index)
             self.processors[end_processor_index].insert(end_task_index, task)
 
-            self.processors_times[start_processor_index] -= task
-            self.processors_times[end_processor_index] += task
+            self.processors_times[start_processor_index] -= self.instance.tasks_durations[task]
+            self.processors_times[end_processor_index] += self.instance.tasks_durations[task]
             
             if self.processors_times[end_processor_index] > self.total_time:
                 self.total_time = self.processors_times[end_processor_index]
@@ -105,18 +92,18 @@ class GeneticSolution(InstanceSolution):
             first_task = self.processors[start_processor_index].pop(start_task_index)
             self.processors[end_processor_index].append(first_task)
             
-            self.processors_times[start_processor_index] -= first_task
-            self.processors_times[end_processor_index] += first_task
+            self.processors_times[start_processor_index] -= self.instance.tasks_durations[first_task]
+            self.processors_times[end_processor_index] += self.instance.tasks_durations[first_task]
             self.total_time = max(self.processors_times)
         else:
             end_task_index = index_of_min(map(
-                lambda task: abs(processors_difference - 2 * (self.processors[start_processor_index][start_task_index] - task)),
+                lambda task: abs(processors_difference - 2 * (self.instance.tasks_durations[self.processors[start_processor_index][start_task_index]] - self.instance.tasks_durations[task])),
                 self.processors[end_processor_index]
             ))
 
             first_task = self.processors[start_processor_index][start_task_index]
             second_task = self.processors[end_processor_index][end_task_index]
-            tasks_difference = first_task - second_task
+            tasks_difference = self.instance.tasks_durations[first_task] - self.instance.tasks_durations[second_task]
 
             if tasks_difference > 0 and tasks_difference < processors_difference:
                 self.processors[start_processor_index][start_task_index] = second_task
