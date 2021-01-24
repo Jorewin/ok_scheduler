@@ -14,9 +14,9 @@ def get_file_name(name, extension):
     if match is not None:
         name = match.group(1)
     i = 1
-    while os.path.isfile(f"{name}_{i}.{extension}"):
+    while os.path.isfile(f"{name}-{i}.{extension}"):
         i += 1
-    return f"{name}_{i}.{extension}"
+    return f"{name}-{i}.{extension}"
 
 
 def parse_time(seconds):
@@ -58,13 +58,17 @@ def jakub_genetic(source: str, target: str, population_size: int, best_specimens
             period = 0
         extras = {
             "algorithm": "jakub_genetic",
-            "time_period": 0.0,
+            "time_period": "",
+            "best_solution_at": "00:00:00",
             "population_size": population_size,
             "best_specimens_group_size": best_specimens_group_size
         }
         instance = scheduler.Instance.load_txt(source)
+        default = f"jakub_genetic-m{instance.processors_number}n{len(instance.tasks_durations)}"
         if target is None:
-            target = f"jakub_genetic-m{instance.processors_number}n{len(instance.tasks_durations)}"
+            target = default
+        elif os.path.isdir(target):
+            target = os.path.join(target, default)
         generator = scheduler.jakub_genetic.solution_generator(instance, population_size, best_specimens_group_size)
         best_solution = scheduler.greedy.solve(instance)
         total_times = [best_solution.total_time for _ in range(100)]
@@ -74,9 +78,11 @@ def jakub_genetic(source: str, target: str, population_size: int, best_specimens
         solution_width = math.ceil(math.log10(best_solution.total_time))
         try:
             for generation, solution in zip(itertools.count(1, 1), generator):
+                if solution.total_time < best_solution.total_time:
+                    best_solution = solution
+                    extras.update({"best_solution_at": parse_time(time.time() - start)})
                 if period != 0 and time.time() >= period:
                     raise KeyboardInterrupt()
-                best_solution = min(best_solution, solution, key=lambda x: x.total_time)
                 total_times[(generation - 1)%100] = solution.total_time
                 average = sum(total_times)/len(total_times)
                 average_width = max(average_width, math.ceil(math.log10(average)))
@@ -126,8 +132,11 @@ def eryk_genetic(source: str, target: str, threads: int, thread_population_size:
         Timer(period.hour * 3600 + period.minute * 60 + period.second, lambda: stop_event.set()).start()
 
     instance = scheduler.Instance.load_txt(source)
+    default = f"eryk_genetic-m{instance.processors_number}n{len(instance.tasks_durations)}"
     if target is None:
-        target = f"eryk_genetic-m{instance.processors_number}n{len(instance.tasks_durations)}"
+        target = default
+    elif os.path.isdir(target):
+        target = os.path.join(target, default)
 
     def update_interface(queue):
         current_best = queue.best()

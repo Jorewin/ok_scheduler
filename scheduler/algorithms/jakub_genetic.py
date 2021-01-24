@@ -1,5 +1,6 @@
 import copy
 import random
+import numpy
 from scheduler.problem import Instance, InstanceSolution
 from itertools import cycle
 
@@ -71,11 +72,14 @@ class GeneticSolution(InstanceSolution):
                 processors[p_index].append(t_index)
         return GeneticSolution(self.instance, task_mapping, processors=processors)
 
-    def mutate(self):
+    def mutate(self, weights=None):
         tasks_mapping = copy.deepcopy(self.tasks_mapping)
-        processor_1 = random.randrange(self.instance.processors_number)
-        processor_2 = random.randrange(1, self.instance.processors_number)
-        processor_2 = (processor_1 + processor_2) % self.instance.processors_number
+        # processor_1 = random.randrange(self.instance.processors_number)
+        # processor_2 = random.randrange(1, self.instance.processors_number)
+        # processor_2 = (processor_1 + processor_2) % self.instance.processors_number
+        processor_1, processor_2 = numpy.random.default_rng().choice(
+            self.instance.processors_number, size=2, replace=False, p=weights, shuffle=False
+        )
         if self.processors[processor_1] != []:
             index_1 = random.choice(self.processors[processor_1])
             tasks_mapping[index_1] = processor_2
@@ -111,11 +115,14 @@ def cross_list_of_specimens(specimens):
 
 def solution_generator(instance, population_size, best_specimens_number):
     population = [GeneticSolution.random(instance) for _ in range(population_size)]
+    weights = [i**10 for i in range(1, instance.processors_number + 1)]
+    sigma = sum(weights)
+    weights = list(map(lambda x: x / sigma, weights))
     while True:
         best_specimens = sorted(population, key=lambda x: x.total_time)[:best_specimens_number]
         crossed = cross_list_of_specimens(best_specimens)
         mutated = [
-            solution.mutate() for solution, _ in
+            solution.mutate(weights=weights) for solution, _ in
             zip(cycle(crossed), range(population_size - len(crossed)))
         ]
         population = crossed + mutated

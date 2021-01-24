@@ -130,10 +130,11 @@ class InstanceSolution:
         for i in range(length):
             ax.barh(y, x[i], left=sigma)
             sigma += x[i]
-        labels = [f"processor N°{i}" for i in range(self.instance.processors_number, 0, -1)]
+        labels = [f"{i}" for i in range(self.instance.processors_number - 1, -1, -1)]
         ax.set_yticks(y)
         ax.set_yticklabels(labels)
         ax.set_title("instance solution visualization")
+        ax.set_ylabel("processor")
         ax.set_xlabel("execution time")
         if inplace:
             pyplot.show()
