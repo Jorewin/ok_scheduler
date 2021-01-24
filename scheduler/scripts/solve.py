@@ -60,7 +60,7 @@ def jakub_genetic(source: str, target: str, population_size: int, best_specimens
             "algorithm": "jakub_genetic",
             "time_period": 0.0,
             "population_size": population_size,
-            "best_specimens_group_size": best_specimens_group_size,
+            "best_specimens_group_size": best_specimens_group_size
         }
         instance = scheduler.Instance.load_txt(source)
         if target is None:
@@ -114,6 +114,7 @@ def eryk_genetic(source: str, target: str, threads: int, thread_population_size:
     """Solves the instance read from input and writes the result to the output after KeyboardInterrupt."""
 
     extras = {
+        "algorithm": "eryk_heuristic",
         'threads_number': threads,
         'thread_population_size': thread_population_size,
         'best_specimens_per_thread': best_specimens_per_thread
@@ -141,12 +142,10 @@ def eryk_genetic(source: str, target: str, threads: int, thread_population_size:
     try:
         results_queue = scheduler.eryk_heuristic.SolutionsQueue(4)
         scheduler.eryk_heuristic.solve(instance, results_queue, stop_event, update_interface, threads, thread_population_size, best_specimens_per_thread)
-        results_queue.pop().save_toml(get_file_name(target, "toml"), { **extras, 'period': period })
+        results_queue.pop().save_toml(get_file_name(target, "toml"), { **extras, 'time_period': period })
     except KeyboardInterrupt as error:
         stop_event.set()
         end_time = time.time()
 
-        results_queue.pop().save_toml(get_file_name(target, "toml"), { **extras, 'period': parse_time(end_time - start_time) })
+        results_queue.pop().save_toml(get_file_name(target, "toml"), { **extras, 'time_period': parse_time(end_time - start_time) })
         raise error
-
-
