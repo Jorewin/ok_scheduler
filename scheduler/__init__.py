@@ -6,7 +6,8 @@ from .algorithms import lpt
 from .algorithms import eryk_heuristic
 from .problem import Instance, InstanceSolution
 from .generator import generate
+from .exceptions import FileContentError
 
 
-__version__ = "0.2.0"
+__version__ = "1.0.0"
 __authors__ = ["Jakub Błażejowski", "Eryk Andrzejewski"]
