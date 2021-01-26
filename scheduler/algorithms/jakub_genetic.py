@@ -157,8 +157,8 @@ def solution_generator(
     weights = list(map(lambda x: x / sigma, weights))
     while True:
         best_specimens = sorted(population, key=lambda x: x.total_time)[:best_specimens_number]
-        crossed = [
-            best_specimens[i - 1].cross(best_specimens[i]) for i in range(1, best_specimens_number, 2)
+        crossed = best_specimens[:1] + [
+            best_specimens[i - 1].cross(best_specimens[i]) for i in range(2, best_specimens_number, 2)
         ]
         mutated = [
             solution.mutate(weights=weights) for solution, _ in
