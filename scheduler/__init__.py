@@ -6,6 +6,7 @@ from .algorithms import lpt
 from .algorithms import eryk_heuristic
 from .problem import Instance, InstanceSolution
 from .generator import generate
+from .exceptions import FileContentError
 
 
 __version__ = "1.0.0"

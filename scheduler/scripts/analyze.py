@@ -21,9 +21,10 @@ def display(source: str):
     print(f"{name:{width}}", solution.total_time)
     for key in extras:
         print(f"{key:{width}}", extras[key])
-    _, ax = pyplot.subplots()
+    figure, ax = pyplot.subplots()
     solution.plot(ax=ax)
     ax.set_title(extras.get("algorithm", "unknown"))
+    figure.tight_layout()
     pyplot.show()
 
 
@@ -59,9 +60,10 @@ def compare(source_1: str, source_2: str):
     for key in extras_2:
         if key not in common:
             print(f"{key:{width_1}}", f"{name_2:-^{width_2}}", f"{extras_2[key]:<{width_2}}")
-    _, (ax_1, ax_2) = pyplot.subplots(1, 2)
+    figure, (ax_1, ax_2) = pyplot.subplots(1, 2)
     solution_1.plot(ax=ax_1)
     solution_2.plot(ax=ax_2)
-    ax_1.set_title(extras_1.get("algorithm", "unknown"))
-    ax_2.set_title(extras_2.get("algorithm", "unknown"))
+    ax_1.set_title(extras_1.get("algorithm", "algorithm 1"))
+    ax_2.set_title(extras_2.get("algorithm", "algorithm 2"))
+    figure.tight_layout()
     pyplot.show()
