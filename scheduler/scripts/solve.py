@@ -102,7 +102,6 @@ def jakub_genetic(
             extras.update({"time_period": parse_time(time.time() - start)})
             best_solution.save_toml(target, extras=extras)
             print(f"\nSolution saved in {target}")
-            raise KeyboardInterrupt(error)
 
 
 @solve.command()
@@ -160,4 +159,3 @@ def eryk_genetic(source: str, target: str, threads: int, thread_population_size:
     finally:
         results_queue.pop().save_toml(target, {**extras, 'time_period': parse_time(time.time() - start_time)})
         print(f"\nSolution saved in {target}")
-        raise KeyboardInterrupt()
