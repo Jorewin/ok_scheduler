@@ -8,6 +8,7 @@ def generate_partitions(whole_list: list, partitions_number: int) -> Iterator[li
 
     :param whole_list: the list for which partitions are being generated
     :param partitions_number: number of partitions in which whole_list is divided
+    :return: generator that yields lists of processors with tasks assigned to them
     """
     if partitions_number == 1:
         yield [whole_list]

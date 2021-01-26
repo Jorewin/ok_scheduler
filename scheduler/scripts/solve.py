@@ -34,28 +34,24 @@ def solve():
 
 @solve.command()
 @click.option(
-    "-i", "source", prompt=True, help="Path to the instance file.", type=click.Path(exists=True)
+    "-i", "source", prompt=True, help="path to the instance file.", type=click.Path(exists=True)
 )
 @click.option(
-    "-o", "target", help="output", default=None, type=click.Path(writable=True)
+    "-o", "target", help="output file or directory", default=None, type=click.Path(writable=True)
 )
-@click.option("-p", "population_size", prompt=True, help="Size of the population.", type=int)
-@click.option("-b", "best_specimens_group_size", prompt=True, help="Size of the best specimens group.", type=int)
+@click.option("-p", "population_size", prompt=True, help="size of the population.", type=int)
+@click.option("-b", "best_specimens_group_size", prompt=True, help="size of the best specimens group.", type=int)
 @click.option(
-    "-t", "period", default=None, help="Processing time fmt = HH:MM:SS/MM:SS/SS",
-    type=click.DateTime(["%H:%M:%S", "%M:%S", "%S"])
+    "-t", "period", default=None, help="processing time",
+    type=click.DateTime(["%H:%M:%S", "%-H:%M:%S", "%M:%S", "%-M:%S", "%S", "%-S"])
 )
-def jakub_genetic(source: str, target: str, population_size: int, best_specimens_group_size: int, period: datetime.datetime):
+def jakub_genetic(
+        source: str, target: str, population_size: int, best_specimens_group_size: int, period: datetime.datetime
+):
     """Solves the instance read from input and writes the result to the output after KeyboardInterrupt."""
     if best_specimens_group_size > population_size:
         raise ValueError("best_specimens_group_size can't be higher than the population_size")
     else:
-        new = datetime.datetime.now()
-        if period is not None:
-            period = new + datetime.timedelta(hours=period.hour, minutes=period.minute, seconds=period.second)
-            period = period.timestamp()
-        else:
-            period = 0
         extras = {
             "algorithm": "jakub_genetic",
             "time_period": "",
@@ -69,11 +65,17 @@ def jakub_genetic(source: str, target: str, population_size: int, best_specimens
             target = default
         elif os.path.isdir(target):
             target = os.path.join(target, default)
+        target = get_file_name(target, "toml")
+        new = datetime.datetime.now()
+        if period is not None:
+            period = new + datetime.timedelta(hours=period.hour, minutes=period.minute, seconds=period.second)
+            period = period.timestamp()
+        else:
+            period = 0
+        start = new.timestamp()
         generator = scheduler.jakub_genetic.solution_generator(instance, population_size, best_specimens_group_size)
         best_solution = next(generator)
         total_times = [best_solution.total_time for _ in range(100)]
-        start = time.time()
-        average = 0
         average_width = 0
         solution_width = math.ceil(math.log10(best_solution.total_time))
         try:
@@ -98,23 +100,24 @@ def jakub_genetic(source: str, target: str, population_size: int, best_specimens
                 )
         except KeyboardInterrupt as error:
             extras.update({"time_period": parse_time(time.time() - start)})
-            best_solution.save_toml(get_file_name(target, "toml"), extras=extras)
+            best_solution.save_toml(target, extras=extras)
+            print(f"\nSolution saved in {target}")
             raise KeyboardInterrupt(error)
 
 
 @solve.command()
 @click.option(
-    "-i", "source", prompt=True, help="Path to the instance file.", type=click.Path(exists=True)
+    "-i", "source", prompt=True, help="path to the instance file.", type=click.Path(exists=True)
 )
 @click.option(
-    "-o", "target", help="output", default=None, type=click.Path(writable=True)
+    "-o", "target", help="output file or directory", default=None, type=click.Path(writable=True)
 )
-@click.option("-n", "threads", prompt=True, help="Number of threads", type=int)
-@click.option("-p", "thread_population_size", prompt=True, help="Size of the population of each thread.", type=int)
-@click.option("-b", "best_specimens_per_thread", prompt=True, help="Size of the best specimens group per thread.", type=int)
+@click.option("-n", "threads", prompt=True, help="number of threads", type=int)
+@click.option("-p", "thread_population_size", prompt=True, help="size of the population of each thread.", type=int)
+@click.option("-b", "best_specimens_per_thread", prompt=True, help="size of the best specimens group per thread.", type=int)
 @click.option(
-    "-t", "period", default=None, help="Processing time fmt = HH:MM:SS/MM:SS/SS",
-    type=click.DateTime(["%H:%M:%S", "%M:%S", "%S"])
+    "-t", "period", default=None, help="processing time",
+    type=click.DateTime(["%H:%M:%S", "%-H:%M:%S", "%M:%S", "%-M:%S", "%S", "%-S"])
 )
 def eryk_genetic(source: str, target: str, threads: int, thread_population_size: int, best_specimens_per_thread: int, period: datetime.datetime):
     """Solves the instance read from input and writes the result to the output after KeyboardInterrupt."""
@@ -137,6 +140,7 @@ def eryk_genetic(source: str, target: str, threads: int, thread_population_size:
         target = default
     elif os.path.isdir(target):
         target = os.path.join(target, default)
+    target = get_file_name(target, "toml")
 
     def update_interface(queue):
         current_best = queue.best()
@@ -151,10 +155,9 @@ def eryk_genetic(source: str, target: str, threads: int, thread_population_size:
     try:
         results_queue = scheduler.eryk_heuristic.SolutionsQueue(4)
         scheduler.eryk_heuristic.solve(instance, results_queue, stop_event, update_interface, threads, thread_population_size, best_specimens_per_thread)
-        results_queue.pop().save_toml(get_file_name(target, "toml"), { **extras, 'time_period': period })
-    except KeyboardInterrupt as error:
+    except KeyboardInterrupt:
         stop_event.set()
-        end_time = time.time()
-
-        results_queue.pop().save_toml(get_file_name(target, "toml"), { **extras, 'time_period': parse_time(end_time - start_time) })
-        raise error
+    finally:
+        results_queue.pop().save_toml(target, {**extras, 'time_period': parse_time(time.time() - start_time)})
+        print(f"\nSolution saved in {target}")
+        raise KeyboardInterrupt()

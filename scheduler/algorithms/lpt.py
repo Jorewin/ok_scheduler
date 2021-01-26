@@ -1,6 +1,5 @@
 import scheduler
 from scheduler.problem import Instance, InstanceSolution
-from collections import deque
 
 
 def solve(instance: Instance) -> InstanceSolution:

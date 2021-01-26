@@ -1,12 +1,26 @@
+from __future__ import annotations
 import copy
 import random
 import numpy
 from scheduler.problem import Instance, InstanceSolution
 from itertools import cycle
+from typing import Iterator
 
 
 class GeneticSolution(InstanceSolution):
-    def __init__(self, instance, tasks_mapping, processors=None):
+    """Class that provides some operations on solutions which are required by the genetic algorithm
+
+    :ivar tasks_mapping: a reversed `processors` structure, the processors are assigned to tasks
+    :type tasks_mapping: list
+    :ivar average_computation_time: OPT for chosen instance is greater or equal than this attribute
+    """
+    def __init__(self, instance: Instance, tasks_mapping: list, processors: list = None):
+        """Creates an :py:class:`GeneticSolution: object
+
+        :param instance: P||Cmax problem instance
+        :param tasks_mapping: a reversed `processors` structure, the processors are assigned to tasks
+        :param processors: list of processors with tasks allocated to them
+        """
         if processors is None:
             processors = [[] for _ in range(instance.processors_number)]
             for task, processor in enumerate(tasks_mapping):
@@ -16,26 +30,40 @@ class GeneticSolution(InstanceSolution):
         self.average_computation_time = sum(instance.tasks_durations) / instance.processors_number
         super().__init__(instance, processors)
 
-    @staticmethod
-    def from_instance_solution(solution):
-        tasks_mapping = [0] * len(solution.instance.tasks_durations)
-        for processor_index, tasks in enumerate(solution.processors):
-            for task_index in tasks:
-                tasks_mapping[task_index] = processor_index
-
-        return GeneticSolution(solution.instance, tasks_mapping, processors=solution.processors)
-
-    def to_instance_solution(self):
+    def to_instance_solution(self) -> InstanceSolution:
+        """Reduces the solution to its base class.
+        
+        :return:
+        """
         return InstanceSolution(self.instance, self.processors)
 
-    def include_processor(self, other, solution_p_index, p_index, available_processors, tasks_mapping, processors):
+    def include_processor(
+            self, other: GeneticSolution, result_p_index: int, p_index: int,
+            available_processors: list, tasks_mapping: list, processors: list
+    ):
+        """Finds tasks assigned to a processor chosen by `p_index` and marks this relation in both `task_mapping`
+        and `processors`. Processors from other solutions that have one or more of chosen tasks are marked as unusable
+        for further operations.
+        
+        :param other: other solution 
+        :param result_p_index: index of a processor to which the chosen tasks will be assigned
+        :param p_index: index of a requested processor
+        :param available_processors: processors that can still be used in the future
+        :param tasks_mapping: a reversed `processors` structure, the processors are assigned to tasks
+        :param processors: list of processors with tasks allocated to them
+        """
         for task_index, assigned_processor in enumerate(self.tasks_mapping):
             if assigned_processor == p_index:
-                tasks_mapping[task_index] = solution_p_index
-                processors[solution_p_index].append(task_index)
+                tasks_mapping[task_index] = result_p_index
+                processors[result_p_index].append(task_index)
                 available_processors[other.tasks_mapping[task_index]] = False
 
-    def cross(self, other):
+    def cross(self, other: GeneticSolution) -> GeneticSolution:
+        """Performs a crossing operation on two solutions.
+
+        :param other: other solution
+        :return: generated solution
+        """
         available_processors = {
             "self": [True for _ in range(self.instance.processors_number)],
             "other": [True for _ in range(self.instance.processors_number)]
@@ -50,21 +78,21 @@ class GeneticSolution(InstanceSolution):
         )
         task_mapping = [-1 for _ in self.tasks_mapping]
         processors = [[] for _ in range(self.instance.processors_number)]
-        solution_p_index = 0
+        result_p_index = 0
         for name, p_index, _ in best_processors:
-            if solution_p_index == self.instance.processors_number - 1:
+            if result_p_index == self.instance.processors_number - 1:
                 break
             if available_processors[name][p_index]:
                 available_processors[name][p_index] = False
                 if name == "self":
                     self.include_processor(
-                        other, solution_p_index, p_index, available_processors["other"], task_mapping, processors
+                        other, result_p_index, p_index, available_processors["other"], task_mapping, processors
                     )
                 else:
                     other.include_processor(
-                        self, solution_p_index, p_index, available_processors["self"], task_mapping, processors
+                        self, result_p_index, p_index, available_processors["self"], task_mapping, processors
                     )
-                solution_p_index += 1
+                result_p_index += 1
         for t_index, assigned_processor in enumerate(task_mapping):
             if assigned_processor == -1:
                 p_index = min(enumerate(processors), key=lambda x: len(x[1]))[0]
@@ -72,9 +100,13 @@ class GeneticSolution(InstanceSolution):
                 processors[p_index].append(t_index)
         return GeneticSolution(self.instance, task_mapping, processors=processors)
 
-    def mutate(self, weights=None):
+    def mutate(self, weights: list = None) -> GeneticSolution:
+        """Performs a mutation on a solution.
+
+        :param weights: probability distribution for the random function
+        :return: generated solution
+        """
         tasks_mapping = copy.deepcopy(self.tasks_mapping)
-        # processor_1 = random.randrange(self.instance.processors_number)
         processor_1, = numpy.random.default_rng().choice(
             self.instance.processors_number, size=1, replace=False, p=weights, shuffle=False
         )
@@ -89,7 +121,12 @@ class GeneticSolution(InstanceSolution):
         return GeneticSolution(self.instance, tasks_mapping)
 
     @staticmethod
-    def random(instance):
+    def random(instance: Instance) -> GeneticSolution:
+        """Creates a random solution.
+
+        :param instance: P||Cmax problem instance
+        :return: generated solution
+        """
         tasks_number = len(instance.tasks_durations)
         tasks_mapping = [0 for _ in range(tasks_number)]
         splitter = -instance.processors_number
@@ -104,34 +141,36 @@ class GeneticSolution(InstanceSolution):
         return GeneticSolution(instance, tasks_mapping)
 
 
-def cross_list_of_specimens(specimens):
-    result = []
+def solution_generator(
+        instance: Instance, population_size: int, best_specimens_number: int
+) -> Iterator[GeneticSolution]:
+    """Yields the best solution every generation cycle.
 
-    for index in range(1, len(specimens), 2):
-        result.append(specimens[index - 1].cross(specimens[index]))
-
-    return result
-
-
-def solution_generator(instance, population_size, best_specimens_number):
+    :param instance: P||Cmax problem instance
+    :param population_size: size of the population
+    :param best_specimens_number: defines the size of a group that population is reduced to
+    :return: generator that yields py:class:`InstanceSolution` objects
+    """
     population = [GeneticSolution.random(instance) for _ in range(population_size)]
     weights = [i**10 for i in range(1, instance.processors_number + 1)]
     sigma = sum(weights)
     weights = list(map(lambda x: x / sigma, weights))
     while True:
         best_specimens = sorted(population, key=lambda x: x.total_time)[:best_specimens_number]
-        crossed = cross_list_of_specimens(best_specimens)
+        crossed = [
+            best_specimens[i - 1].cross(best_specimens[i]) for i in range(1, best_specimens_number, 2)
+        ]
         mutated = [
             solution.mutate(weights=weights) for solution, _ in
             zip(cycle(crossed), range(population_size - len(crossed)))
         ]
         population = crossed + mutated
         best_solution = min(population, key=lambda x: x.total_time)
-        yield best_solution
+        yield InstanceSolution(instance, best_solution.processors)
 
 
 def solve(instance: Instance) -> InstanceSolution:
-    """Solves the P||Cmax problem by using a genetic algorithm.
+    """Solves the P||Cmax problem by using a genetic algorithm and default parameters.
     :param instance: valid problem instance
     :return: generated solution of a given problem instance
     """
@@ -145,4 +184,4 @@ def solve(instance: Instance) -> InstanceSolution:
     return best_solution.to_instance_solution()
 
 
-# __all__ = ["solve", "solution_generator", "GeneticSolution"]
+__all__ = ["solve", "solution_generator"]

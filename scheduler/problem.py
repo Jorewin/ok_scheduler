@@ -161,7 +161,7 @@ class InstanceSolution:
 
     @staticmethod
     def load_toml(filename: str) -> (InstanceSolution, dict):
-        """
+        """Creates a py:class:`InstanceSolution` object alongside passed extras in a toml file.
 
         :param filename: name of the toml file
         :return: created object and simulation data

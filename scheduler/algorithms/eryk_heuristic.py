@@ -161,5 +161,4 @@ def solve(instance: Instance, results_queue: SolutionsQueue, stop_event: Event, 
         thread.join()
 
 
-__all__ = ["solve"]
-
+__all__ = ["solve", "SolutionsQueue"]

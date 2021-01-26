@@ -6,7 +6,7 @@ algorithm = "eryk_heuristic"
 threads_number = 8
 thread_population_size = 32
 best_specimens_per_thread = 6
-time_period = 05:00
+time_period = 1900-01-01T00:05:00
 
 [solution]
 processor_0 = [ 157, 2, 140, 128, 743, 420, 681, 272, 917,]
